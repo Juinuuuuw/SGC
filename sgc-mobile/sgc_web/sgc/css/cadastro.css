@@ -1,0 +1,40 @@
+/* --- ESTILOS DE ABAS DO MÓDULO DE PRODUTOS --- */
+.product-nav {
+  display: flex;
+  gap: 5px;
+  background-color: #fff;
+  padding: 0 24px;
+  border-left: 1px solid var(--cor-borda-cinza);
+  border-right: 1px solid var(--cor-borda-cinza);
+  border-bottom: 2px solid var(--cor-borda-cinza);
+  border-top: 1px solid var(--cor-borda-cinza);
+}
+.product-tab-btn {
+  padding: 10px 20px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  color: #555;
+  margin-top: 3px;
+}
+.product-tab-btn.active {
+  color: var(--cor-texto-principal);
+  border-bottom-color: var(--cor-destaque);
+}
+.product-tab-pane {
+  display: none;
+  border: 1px solid var(--cor-borda-cinza);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  background-color: #fff;
+}
+.product-tab-pane.active {
+  display: block;
+}
+/* Remove o espaçamento extra do formulário quando está dentro da aba */
+.product-tab-pane .product-form {
+    margin-bottom: 0;
+}

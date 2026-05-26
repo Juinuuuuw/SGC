@@ -1,0 +1,105 @@
+/* --- IMPORTAÇÃO DE COMPRAS --- */
+.import-container {
+  text-align: center;
+  padding: 20px 0;
+}
+#purchases .content-box-body > p {
+  text-align: center;
+  padding: 20px 0;
+}
+.custom-file-upload {
+  display: inline-block; padding: 12px 20px; cursor: pointer;
+  background-color: #3498db; color: white; border-radius: 6px;
+  font-weight: bold; transition: background-color 0.2s;
+}
+.custom-file-upload:hover { background-color: #2980b9; }
+input[type="file"] { display: none; }
+#purchaseImportContainer .content-box-body { padding: 24px; overflow-x: auto; }
+#purchaseImportContainer h3 { margin-bottom: 15px; font-weight: 500; }
+
+#purchaseItemsTable input[type="number"],
+#purchaseItemsTable select {
+  padding: 6px; border: 1px solid #ccc; border-radius: 4px;
+}
+
+button.btn-confirm {
+    padding: 10px 30px;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: white;
+    min-width: 100px;
+    background-color: #1e99ee;
+}
+
+button.btn-cancel {
+  padding: 10px 30px;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+    color: white;
+    min-width: 100px;
+    background-color: #1e99ee;
+}
+.confirm-button {
+  display: block; width: 100%; padding: 15px; font-size: 16px; font-weight: bold;
+  color: white; background-color: var(--cor-destaque); border: none; border-radius: 6px;
+  cursor: pointer; transition: background-color 0.2s;
+}
+.confirm-button:hover { background-color: #e0a800; }
+
+.cancel-button {
+  display: block; width: 100%; padding: 12px; font-size: 14px;
+  color: #e74c3c; background-color: transparent; border: 1px solid #e74c3c;
+  border-radius: 6px; cursor: pointer; margin-top: 10px; transition: all 0.2s;
+}
+.cancel-button:hover {
+  background-color: #e74c3c;
+  color: white;
+}
+.import-actions {
+  margin-top: 20px;
+}
+
+/* Animações de mostrar/esconder */
+#initial-import-prompt {
+  transition: all 0.5s ease-in-out;
+  overflow: hidden;
+  max-height: 500px;
+  opacity: 1;
+}
+#initial-import-prompt.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-width: 0;
+}
+#purchaseImportContainer {
+  transition: all 0.5s ease-in-out;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+}
+#purchaseImportContainer.visible {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+/* Ajustes para tabela de importação de compras */
+#purchaseItemsTable td, #purchaseItemsTable th {
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+#purchaseItemsTable .fator-conversao-input { width: 60px; }
+#purchaseItemsTable .unidade-venda-input { width: 90px; }
+#purchaseItemsTable .margem-input { width: 80px; }
+#purchaseItemsTable .preco-venda-input { width: 100px; }

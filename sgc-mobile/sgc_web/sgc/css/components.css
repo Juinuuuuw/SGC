@@ -1,0 +1,286 @@
+/* --- ESTILO DE CABEÇALHO DE SEÇÃO GENÉRICO --- */
+.section > h1, .section > h2, .import-header {
+  font-size: 20px;
+  font-weight: 600;
+  padding: 20px 24px;
+  background-color: #fff;
+  border-left: 1px solid var(--cor-borda-cinza);
+  border-right: 1px solid var(--cor-borda-cinza);
+  border-top: 4px solid var(--cor-destaque);
+  border-bottom: 1px solid var(--cor-borda-cinza);
+  border-radius: 8px 8px 0 0;
+  margin-bottom: 0;
+}
+.section > h1, .section > h2[style*="margin-top"], .import-header {
+  margin-top: 30px;
+}
+.section > *:first-child {
+  margin-top: 0 !important;
+}
+
+/* --- ESTILO DOS CORPOS DOS BLOCOS DE CONTEÚDO GENÉRICO --- */
+.product-form,
+.product-table,
+.content-box-body {
+  margin-top: 0;
+  border-radius: 0 0 8px 8px;
+  border: 1px solid var(--cor-borda-cinza);
+  border-top: none;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  margin-bottom: 30px;
+  background-color: #fff;
+}
+
+/* --- FORMULÁRIOS GENÉRICOS --- */
+.product-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+.product-form .form-group {
+  display: flex;
+  flex-direction: column;
+}
+.product-form label {
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #444;
+}
+.product-form input,
+.product-form textarea,
+.product-form select {
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  width: 100%;
+}
+.product-form input:focus,
+.product-form textarea:focus,
+.product-form select:focus {
+    border-color: var(--cor-destaque);
+    box-shadow: 0 0 0 2px rgba(255, 183, 0, 0.2);
+    outline: none;
+}
+.product-form input:disabled {
+  background-color: #f0f0f0;
+  color: #666;
+  cursor: not-allowed;
+}
+.product-form textarea { resize: vertical; }
+.product-form button {
+  padding: 10px 16px;
+  font-size: 15px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+  color: white;
+}
+.product-form button[type="submit"] { background-color: #27ae60; }
+.product-form button[type="submit"]:hover { background-color: #229954; }
+#cancelarEdicao, #cancelarEdicaoFornecedor { background-color: #e74c3c; }
+#cancelarEdicao:hover, #cancelarEdicaoFornecedor:hover { background-color: #c0392b; }
+.product-form .full-width {
+  grid-column: 1 / -1;
+}
+.product-form .form-buttons {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+
+/* --- TABELAS GENÉRICAS --- */
+.product-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.product-table th, .product-table td {
+  padding: 12px 24px;
+  text-align: left;
+  border-bottom: 1px solid var(--cor-borda-cinza);
+  font-size: 14px;
+}
+.product-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+.product-table tr:last-child td {
+  border-bottom: none;
+}
+.product-table td button {
+  padding: 6px 10px;
+  background-color: #3498db;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-right: 5px;
+}
+.product-table td button:hover { background-color: #2980b9; }
+.product-table td button.delete-btn {
+  background-color: #e74c3c;
+}
+.product-table td button.delete-btn:hover {
+  background-color: #c0392b;
+}
+
+/* --- ESTILOS PARA MODAIS --- */
+.modal {
+  display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+  width: 100%; height: 100%; overflow: auto;
+  background-color: rgba(0,0,0,0.6);
+  align-items: center; justify-content: center;
+}
+.modal-content {
+  background-color: #fff; margin: auto; padding: 25px 30px;
+  border-radius: 8px; width: 90%;
+  position: relative; animation: fadeIn 0.3s;
+}
+#purchaseDetailModal .modal-content,
+#movementDetailModal .modal-content {
+  max-width: 800px;
+}
+#confirmationModal .modal-content {
+  max-width: 450px;
+  text-align: center;
+}
+@keyframes fadeIn {
+  from {opacity: 0; transform: scale(0.95);}
+  to {opacity: 1; transform: scale(1);}
+}
+.modal-close {
+  color: #aaa; position: absolute; top: 10px; right: 20px;
+  font-size: 28px; font-weight: bold;
+}
+.modal-close:hover, .modal-close:focus {
+  color: #000; text-decoration: none; cursor: pointer;
+}
+.modal-header-info {
+  border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;
+}
+.modal-header-info p { margin-bottom: 5px; }
+
+/* Modal de Notificação */
+#notificationModal .modal-content {
+  max-width: 450px; text-align: center; padding: 30px;
+}
+#notificationModal h2 {
+  margin-bottom: 15px; font-size: 22px; color: var(--cor-texto-principal);
+}
+#notificationModal p {
+  font-size: 16px; line-height: 1.5; margin-bottom: 25px; color: #555;
+}
+#notificationModal button {
+  display: inline-block; width: auto; padding: 12px 40px; font-size: 15px;
+  font-weight: bold; border: none; border-radius: 6px; cursor: pointer;
+  transition: 0.2s; color: white; background-color: #3498db;
+}
+#notificationModal button:hover { background-color: #2980b9; }
+
+/* Modal de Confirmação */
+#confirmationModal h2 { margin-bottom: 15px; font-size: 22px; }
+#confirmationModal p { font-size: 16px; line-height: 1.5; margin-bottom: 25px; color: #555; }
+#confirmationModal .modal-buttons { display: flex; justify-content: center; gap: 15px; }
+#confirmationModal .modal-buttons button {
+  padding: 10px 30px; font-size: 15px; font-weight: bold; border: none;
+  border-radius: 6px; cursor: pointer; transition: 0.2s; color: white; min-width: 100px;
+}
+#confirmationModal .btn-confirm { background-color: #27ae60; }
+#confirmationModal .btn-confirm:hover { background-color: #229954; }
+#confirmationModal .btn-cancel { background-color: #e74c3c; }
+#confirmationModal .btn-cancel:hover { background-color: #c0392b; }
+
+/* Modal de Seleção de Produto (F5) */
+#productSelectionModal .modal-content {
+  max-width: 700px; height: 80vh; display: flex; flex-direction: column;
+}
+.modal-search-input {
+  width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccc;
+  border-radius: 6px; margin-bottom: 15px; box-sizing: border-box;
+}
+.modal-search-input:focus {
+  border-color: var(--cor-destaque);
+  box-shadow: 0 0 0 2px rgba(255, 183, 0, 0.2);
+  outline: none;
+}
+.modal-product-list {
+  flex-grow: 1; overflow-y: auto; border: 1px solid var(--cor-borda-cinza); border-radius: 6px;
+}
+.modal-product-item {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 15px; padding: 12px 15px;
+  cursor: pointer; border-bottom: 1px solid var(--cor-borda-cinza); align-items: center;
+}
+.modal-product-item:last-child { border-bottom: none; }
+.modal-product-item:hover { background-color: #f5f5f5; }
+/* --- BADGES --- */
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-radius: 4px;
+  color: #fff;
+}
+.badge-success { background-color: #2e7d32; }
+.badge-warning { background-color: #f57f17; }
+.badge-info { background-color: #0277bd; }
+.badge-danger { background-color: #c62828; }
+
+/* --- BOTÕES ADICIONAIS --- */
+.small-btn {
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  margin-right: 2px !important;
+}
+.success-btn { background-color: #27ae60 !important; }
+.success-btn:hover { background-color: #219150 !important; }
+.secondary-btn { background-color: #95a5a6 !important; }
+.secondary-btn:hover { background-color: #7f8c8d !important; }
+
+/* --- ESTILOS PARA INPUTS DENTRO DE TABELAS (MODAIS) --- */
+.table-input {
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 13px;
+  color: #333;
+  transition: all 0.2s ease;
+  background-color: #fff;
+  outline: none;
+}
+
+.table-input:focus {
+  border-color: var(--cor-destaque);
+  box-shadow: 0 0 0 2px rgba(255, 183, 0, 0.15);
+}
+
+.table-input:hover {
+  border-color: #bbb;
+}
+
+.table-input[type="number"] {
+  text-align: center;
+}
+
+.table-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%23666' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 24px;
+}
+
+.modal-product-item .info .ref { font-size: 12px; color: #777; }
+.modal-product-item .price { font-weight: bold; font-size: 15px; }
+.modal-product-item .stock {
+  font-size: 14px; color: #555; background-color: #e9ecef; padding: 4px 8px; border-radius: 4px;
+}

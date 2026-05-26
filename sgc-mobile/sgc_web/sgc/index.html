@@ -1,0 +1,1222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SGC</title>
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4a148c">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SGC">
+  <link rel="apple-touch-icon" href="sgc_icon.png">
+  
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pdv.css">
+  <link rel="stylesheet" href="css/cadastro.css">
+  <link rel="stylesheet" href="css/importacao.css">
+  <link rel="stylesheet" href="css/estoque.css">
+  <link rel="stylesheet" href="css/financeiro.css">
+  <link rel="stylesheet" href="css/etiquetas.css">
+  <link rel="stylesheet" href="css/chatbot.css">
+  <link rel="stylesheet" href="css/grupos.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/mesas.css">
+  <link rel="stylesheet" href="css/offline.css">
+  <!-- Responsividade mobile — deve vir por último para sobrescrever -->
+  <link rel="stylesheet" href="css/mobile.css">
+
+  <link rel="icon" href="sgc_icon.png" type="image/png"> 
+  <!-- Ícones Profissionais -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+
+  <!-- ── Banner de modo offline ── -->
+  <div id="offline-banner">
+    <span>Modo Offline — os dados estão sendo salvos localmente e sincronizados quando a conexão voltar.</span>
+    <div class="banner-actions">
+      <button onclick="window.sgcSync?._processarFila()">Tentar Sincronizar</button>
+    </div>
+  </div>
+
+  <!-- ── Toast de sincronização ── -->
+  <div id="sync-toast"></div>
+
+  <div class="dashboard">
+    <aside class="sidebar">
+      <button id="mobile-close-sidebar" aria-label="Fechar menu">&times;</button>
+      <div class="sidebar-logo-container">
+        <img src="sgc_logo_banner.png" alt="Sistema de Gestão Comercial" class="logo-banner-image">
+        <img src="sgc_icon.png" alt="SGC Icon" class="logo-icon-image">
+      </div>
+      <nav>
+        <ul>
+          <li data-section="home" class="active">
+            <i data-lucide="layout-dashboard"></i>
+            <span class="menu-text">Início</span>
+          </li>
+          
+          <li class="menu-item has-submenu" data-permissao="estoque">
+            <span>
+              <i data-lucide="package"></i>
+              <span class="menu-text">Compras e Estoque</span>
+            </span>
+            <ul class="submenu">
+              <li class="submenu-header"><span class="menu-text">CADASTROS</span></li>
+              <li data-section="suppliers" data-permissao="fornecedores"><span class="menu-text">Fornecedor</span></li>
+              <li data-section="products"  data-permissao="produtos"><span class="menu-text">Produtos</span></li>
+              <li data-section="grupos"    data-permissao="produtos"><span class="menu-text">Grupos de Produtos</span></li>
+              <li class="submenu-header"><span class="menu-text">LANÇAMENTOS</span></li>
+              <li data-section="purchases" data-permissao="estoque"><span class="menu-text">Compras</span></li>
+              <li class="submenu-header"><span class="menu-text">ESTOQUE</span></li>
+              <li data-section="movements" data-permissao="estoque"><span class="menu-text">Movimentações</span></li>
+            </ul>
+          </li>
+
+          <li class="menu-item has-submenu" data-permissao="pdv">
+            <span>
+              <i data-lucide="shopping-cart"></i>
+              <span class="menu-text">Vendas</span>
+            </span>
+             <ul class="submenu">
+              <li data-section="pdv-online"><span class="menu-text">PDV Online</span></li>
+            </ul>
+          </li>
+
+          <li data-section="finance" data-permissao="financeiro">
+            <i data-lucide="dollar-sign"></i>
+            <span class="menu-text">Financeiro</span>
+          </li>
+
+          <li class="menu-item has-submenu" data-permissao="relatorios">
+            <span>
+              <i data-lucide="bar-chart-3"></i>
+              <span class="menu-text">Relatórios</span>
+            </span>
+            <ul class="submenu">
+              <li data-section="rep-estoque"><span class="menu-text">Estoque</span></li>
+              <li data-section="rep-vendas"><span class="menu-text">Vendas</span></li>
+              <li data-section="rep-financeiro"><span class="menu-text">Financeiro</span></li>
+            </ul>
+          </li>
+
+          <li class="menu-item has-submenu" data-permissao="configuracoes">
+            <span>
+              <i data-lucide="settings"></i>
+              <span class="menu-text">Gestão da Empresa</span>
+            </span>
+            <ul class="submenu">
+                <li data-section="company-data"><span class="menu-text">Dados da Empresa</span></li>
+                <li data-section="users"><span class="menu-text">Usuários e Perfis</span></li>
+            </ul>
+          </li>
+        </ul>
+      </nav>
+    </aside>
+
+    <div id="sidebar-overlay"></div>
+
+    <main class="main-content">
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <button id="toggle-sidebar-btn">
+            <i data-lucide="menu"></i>
+          </button>
+          <nav id="breadcrumb-nav" class="breadcrumbs"></nav>
+        </div>
+        <div class="top-bar-right">
+          <!-- Status Offline / Sync -->
+          <span id="sync-status-badge" class="sync-badge sync-badge--online">● Online</span>
+          <button id="btn-sync-agora" title="Sincronizar dados pendentes" onclick="window.sgcSync?._processarFila()">
+            <i data-lucide="refresh-cw" style="width:14px;height:14px;margin-right:4px"></i> Sincronizar <span id="sync-pendentes-count"></span>
+          </button>
+
+          <div class="chatbot-container" id="openChatbot">
+            <i data-lucide="message-square" class="chatbot-icon" style="width:28px;height:28px"></i>
+          </div>
+          
+          <div class="profile-dropdown">
+            <button class="profile-trigger">
+              <img id="userProfileImage" src="https://i.pravatar.cc/40?u=user" alt="Foto do Perfil">
+              <span id="userProfileName">Carregando...</span>
+            </button>
+            <div class="dropdown-menu">
+              <button id="editProfileBtn">
+                <i data-lucide="user-cog"></i>
+                Editar Perfil
+              </button>
+              <button id="logoutBtn">
+                <i data-lucide="log-out"></i>
+                Sair
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-area">
+        <!-- ═════════════ HOME / DASHBOARD ═════════════ -->
+        <section id="home" class="section active">
+          <h1>Dashboard</h1>
+          <div class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-icon"><i data-lucide="banknote"></i></div>
+              <div class="kpi-info">
+                <span class="kpi-label">Vendas Hoje</span>
+                <span class="kpi-value" id="kpi-val-vendas-hoje">—</span>
+                <span class="kpi-sub"   id="kpi-sub-vendas-hoje">carregando...</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-primary">
+              <div class="kpi-icon"><i data-lucide="trending-up"></i></div>
+              <div class="kpi-info">
+                <span class="kpi-label">Vendas Este Mês</span>
+                <span class="kpi-value" id="kpi-val-vendas-mes">—</span>
+                <span class="kpi-sub"   id="kpi-sub-vendas-mes">carregando...</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-warning">
+              <div class="kpi-icon"><i data-lucide="shopping-bag"></i></div>
+              <div class="kpi-info">
+                <span class="kpi-label">Compras Este Mês</span>
+                <span class="kpi-value" id="kpi-val-compras-mes">—</span>
+                <span class="kpi-sub"   id="kpi-sub-compras-mes">carregando...</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-info">
+              <div class="kpi-icon"><i data-lucide="package-search"></i></div>
+              <div class="kpi-info">
+                <span class="kpi-label">Valor em Estoque</span>
+                <span class="kpi-value" id="kpi-val-estoque">—</span>
+                <span class="kpi-sub"   id="kpi-sub-estoque">carregando...</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-danger">
+              <div class="kpi-icon"><i data-lucide="alert-octagon"></i></div>
+              <div class="kpi-info">
+                <span class="kpi-label">Estoque Baixo</span>
+                <span class="kpi-value" id="kpi-val-baixo-estoque">—</span>
+                <span class="kpi-sub"   id="kpi-sub-baixo-estoque">carregando...</span>
+              </div>
+            </div>
+            <div class="kpi-card kpi-success">
+              <div class="kpi-icon"><i data-lucide="bar-chart-horizontal-big"></i></div>
+              <div class="kpi-info">
+                <span class="kpi-label">Resultado Financeiro</span>
+                <span class="kpi-value" id="kpi-val-fin-resultado">—</span>
+                <span class="kpi-sub"   id="kpi-sub-fin-resultado">carregando...</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="dashboard-row">
+            <div class="dashboard-card" style="flex:2">
+              <h3 class="dashboard-card-title">Faturamento — Últimos 6 Meses</h3>
+              <div id="grafico-barras" class="grafico-barras-container"></div>
+            </div>
+            <div class="dashboard-card" style="flex:1">
+              <h3 class="dashboard-card-title">Atenção: Estoque Baixo</h3>
+              <div id="lista-baixo-estoque"></div>
+            </div>
+          </div>
+
+          <div class="dashboard-card" style="margin-top:20px">
+            <h3 class="dashboard-card-title">Últimas Vendas</h3>
+            <table class="product-table">
+              <thead><tr><th>ID</th><th>Data/Hora</th><th>Operador</th><th>Pagamento</th><th>Total</th></tr></thead>
+              <tbody id="ultimas-vendas-tbody">
+                <tr><td colspan="5" style="text-align:center;color:#aaa">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+       
+        <!-- ═════════════ FORNECEDORES ═════════════ -->
+        <section id="suppliers" class="section">
+          <h1>Cadastro de Fornecedores</h1>
+          <form id="supplierForm" class="product-form">
+            <input type="text" name="id" placeholder="ID (gerado)" disabled>
+            <input type="text" name="cnpj" placeholder="CNPJ" required>
+            <input type="text" name="razaoSocial" placeholder="Razão Social" required class="full-width">
+            <input type="text" name="nomeFantasia" placeholder="Nome Fantasia" class="full-width">
+            <input type="text" name="inscricaoEstadual" placeholder="Inscrição Estadual">
+            <input type="tel" name="telefone" placeholder="Telefone">
+            <input type="email" name="email" placeholder="E-mail" class="full-width">
+            <input type="text" name="cep" placeholder="CEP">
+            <input type="text" name="logradouro" placeholder="Logradouro" class="full-width">
+            <input type="text" name="numero" placeholder="Número">
+            <input type="text" name="bairro" placeholder="Bairro">
+            <input type="text" name="cidade" placeholder="Cidade">
+            <input type="text" name="uf" placeholder="UF" maxlength="2">
+           
+            <div class="form-buttons">
+              <button type="submit">Cadastrar Fornecedor</button>
+              <button type="button" id="cancelarEdicaoFornecedor" style="display: none;">Cancelar Edição</button>
+            </div>
+          </form>
+
+          <h2 style="margin-top: 30px;">Fornecedores Cadastrados</h2>
+          <table class="product-table" id="supplierTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>CNPJ</th>
+                <th>Razão Social</th>
+                <th>Nome Fantasia</th>
+                <th>Telefone</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="supplierTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- ═════════════ PRODUTOS ═════════════ -->
+        <section id="products" class="section">
+          <h1>Cadastro de Produtos</h1>
+         
+          <nav class="product-nav">
+            <button class="product-tab-btn active" data-tab="dados-cadastrais">Dados Cadastrais</button>
+            <button class="product-tab-btn" data-tab="tributacao">Tributação</button>
+            <button class="product-tab-btn" data-tab="historico">Histórico</button>
+          </nav>
+         
+          <div class="product-tab-content">
+           
+            <div id="tab-dados-cadastrais" class="product-tab-pane active">
+              <form id="productForm" class="product-form">
+                <input type="text" name="codigo" placeholder="Código (gerado)" disabled />
+                <input type="text" name="referencia" placeholder="Referência (código de barras)" />
+                <input type="text" name="nome" placeholder="Nome do Produto" required />
+                <select name="unidadeVenda">
+                  <option value="UN">UN - Unidade</option>
+                  <option value="CX">CX - Caixa</option>
+                  <option value="KG">KG - Quilograma</option>
+                  <option value="G">G - Grama</option>
+                  <option value="L">L - Litro</option>
+                  <option value="ML">ML - Mililitro</option>
+                  <option value="M">M - Metro</option>
+                  <option value="CM">CM - Centímetro</option>
+                  <option value="PC">PC - Peça</option>
+                  <option value="PCT">PCT - Pacote</option>
+                  <option value="FD">FD - Fardo</option>
+                </select>
+
+                <!-- ── Grupo / Subgrupo ── -->
+                <div class="produto-grupo-row full-width" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                  <div class="form-group" style="position: relative;">
+                    <select id="produto-grupo" name="id_grupo" onchange="sgcGrupos.onGrupoChange(this.value)" style="width:100%;">
+                      <option value="">Grupos</option>
+                    </select>
+                  </div>
+                  <div class="form-group" id="produto-subgrupo-wrap" style="position: relative;">
+                    <select id="produto-subgrupo" name="id_subgrupo" style="width:100%;">
+                      <option value="">Subgrupos</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <textarea name="descricao" placeholder="Descrição" rows="2" class="full-width"></textarea>
+                <input type="number" name="estoque" placeholder="Quantidade em estoque" min="0" disabled />
+                <input type="number" name="preco_custo" placeholder="Preço de custo" step="0.01" required />
+                <input type="number" name="margem" placeholder="Margem (%)" step="0.01" required />
+                <input type="number" name="preco_venda" placeholder="Preço de venda" step="0.01" />
+                <div class="form-buttons">
+                  <button type="submit">Cadastrar Produto</button>
+                  <button type="button" id="cancelarEdicao" style="display: none;">Cancelar Edição</button>
+                </div>
+              </form>
+            </div>
+           
+            <div id="tab-tributacao" class="product-tab-pane">
+                <div class="product-form">
+                    <input type="text" name="ncm" placeholder="NCM (Nomenclatura Comum do Mercosul)" disabled>
+                    <input type="text" name="cest" placeholder="CEST (Cód. Especificador da Substituição Tributária)" disabled>
+                    <input type="text" name="cfop" placeholder="CFOP (Código Fiscal de Operações e Prestações)" disabled>
+                    <input type="text" name="origem" placeholder="Origem da Mercadoria" disabled>
+                    <input type="text" name="icms" placeholder="ICMS (%)" disabled>
+                    <input type="text" name="pis" placeholder="PIS (%)" disabled>
+                    <input type="text" name="cofins" placeholder="COFINS (%)" disabled>
+                    <input type="text" name="ipi" placeholder="IPI (%)" disabled>
+                </div>
+                <p style="padding: 0 24px 24px; color: #777;">Obs: Estes campos serão preenchidos automaticamente com os dados fiscais importados do XML de compra.</p>
+            </div>
+           
+            <div id="tab-historico" class="product-tab-pane">
+              <div style="padding: 24px;">
+                <p>Em breve: Um histórico completo de todas as entradas (compras), saídas (vendas) e movimentações de estoque para este produto.</p>
+              </div>
+            </div>
+          </div>
+         
+          <h2 style="margin-top: 30px;">Produtos cadastrados</h2>
+          <table class="product-table">
+            <thead>
+              <tr>
+                <th>Cód</th><th>Ref</th><th>Nome</th><th>Grupo</th><th>Un.</th><th>Estoque</th><th>Preço Custo</th><th>Margem</th><th>Preço Venda</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="productTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- ═════════════ COMPRAS ═════════════ -->
+        <section id="purchases" class="section">
+          <h1>Lançamento de Compras</h1>
+          <div id="initial-import-prompt" class="content-box-body">
+            <p>Importe o arquivo XML de uma NF-e para cadastrar automaticamente o fornecedor e os produtos da nota.</p>
+            <div class="import-container">
+              <label for="xmlFileInput" class="custom-file-upload">
+                Selecionar XML da NF-e
+              </label>
+              <input type="file" id="xmlFileInput" accept=".xml">
+            </div>
+          </div>
+
+          <div id="purchaseImportContainer">
+            <h2 class="import-header">Dados Importados da Nota Fiscal</h2>
+            <div class="content-box-body">
+              <h3>Fornecedor: <strong id="supplierNameDisplay"></strong></h3>
+              <table class="product-table" id="purchaseItemsTable">
+                <thead>
+                  <tr>
+                    <th>Descrição do Produto na Nota</th>
+                    <th>Qtd. (XML)</th>
+                    <th>Un. (XML)</th>
+                    <th>Fator Conv.</th>
+                    <th>Un. Venda</th>
+                    <th>Qtd. Final</th>
+                    <th>Custo Unit. Final</th>
+                    <th>Margem (%)</th>
+                    <th>Preço Venda (UN)</th>
+                  </tr>
+                </thead>
+                <tbody id="purchaseItemsTableBody"></tbody>
+              </table>
+              <div class="import-actions">
+                <button id="confirmPurchaseBtn" class="confirm-button">Confirmar e Adicionar Produtos/Estoque</button>
+                <button id="cancelPurchaseImportBtn" class="cancel-button">Cancelar Importação</button>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 30px; background-color: #fff; border-left: 1px solid var(--cor-borda-cinza); border-right: 1px solid var(--cor-borda-cinza); border-top: 4px solid var(--cor-destaque); border-bottom: 1px solid var(--cor-borda-cinza); border-radius: 8px 8px 0 0; padding: 20px 24px;">
+            <h2 style="margin: 0; border: none; padding: 0;">Histórico de Lançamentos</h2>
+            <button id="btnRefreshCompras" class="small-btn" style="background-color: var(--cor-destaque); color: #fff; font-weight: bold; border-radius: 4px; padding: 8px 12px !important;">
+              🔄 Atualizar Lista
+            </button>
+          </div>
+          <table class="product-table" id="purchaseHistoryTable" style="margin-top: 0; border-top: none; border-radius: 0 0 8px 8px;">            <thead>
+              <tr>
+                <th>ID Lanç.</th>
+                <th>Data</th>
+                <th>Fornecedor</th>
+                <th>Qtd. Itens</th>
+                <th>Valor Total</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="purchaseHistoryTableBody"></tbody>
+          </table>        </section>
+       
+        <!-- ═════════════ PDV ONLINE ═════════════ -->
+        <section id="pdv-online" class="section">
+
+          <div id="pdv-mode-bar" class="pdv-mode-bar" style="display:none">
+            <h2>PDV</h2>
+            <button id="btn-modo-mesas"  class="pdv-mode-btn active"><i data-lucide="utensils-crossed" style="width:16px;height:16px;margin-right:6px"></i> Mesas</button>
+            <button id="btn-modo-avulso" class="pdv-mode-btn"><i data-lucide="shopping-bag" style="width:16px;height:16px;margin-right:6px"></i> Avulso</button>
+          </div>
+
+          <!-- Indicador offline no PDV -->
+          <div id="pdv-offline-indicator" class="pdv-offline-indicator">
+            <i data-lucide="alert-circle" style="width:16px;height:16px;margin-right:6px"></i> Modo Offline — as vendas serão sincronizadas quando houver conexão.
+          </div>
+
+          <div id="pdv-varejo-view" class="active">
+            <div class="pdv-info-panel">
+              <div class="operator-box info-box">
+                <label>OPERADOR(A):</label>
+                <span id="pdvOperatorName">Carregando...</span>
+              </div>
+              <div class="logo-box info-box">
+                <img src="sgc_logo_banner.png" alt="Sistema de Gestão Comercial">
+              </div>
+            </div>
+
+            <div class="pdv-main-panel">
+              <div class="pdv-main-top-section">
+                <div class="product-input-box info-box">
+                  <div class="form-group">
+                    <label for="pdv-product-input">Produto (F5)</label>
+                    <input type="text" id="pdv-product-input" placeholder="Buscar por código, ref. ou nome">
+                  </div>
+                  <div class="form-group">
+                    <label for="pdv-quantity-input">Qtd.</label>
+                    <input type="number" id="pdv-quantity-input" value="1" min="1">
+                  </div>
+                </div>
+              </div>
+
+              <div class="pdv-items-list">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Item</th><th>Descrição</th>
+                      <th>Qtd.</th><th>Vl. Unit.</th><th>Vl. Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="pdv-items-tbody">
+                    <tr class="empty-cart-message"><td colspan="5">CAIXA LIVRE</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pdv-main-bottom-section">
+                <div class="client-info info-box">
+                  <label>CLIENTE (F3)</label>
+                  <span>**CLIENTE À VISTA**</span>
+                </div>
+                <div class="total-display">
+                  <label>Total</label>
+                  <span id="pdv-total-value">R$ 0,00</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="pdv-restaurante-view">
+            <div id="mesas-grid-view">
+              <div class="mesas-toolbar">
+                <h2>Mesas</h2>
+                <div class="mesas-legend">
+                  <span><span class="legend-dot livre"></span>Livre</span>
+                  <span><span class="legend-dot ocupada"></span>Ocupada</span>
+                  <span><span class="legend-dot conta"></span>Conta</span>
+                </div>
+                <div style="display:flex;gap:8px">
+                  <button id="btn-atualizar-mesas" class="pdv-mode-btn" title="Atualizar">🔄 Atualizar</button>
+                  <button id="btn-config-mesas"    class="pdv-mode-btn" title="Gerenciar Mesas">⚙️ Mesas</button>
+                </div>
+              </div>
+
+              <div id="mesas-grid" class="mesas-grid">
+                <p style="color:#aaa;padding:20px">Carregando mesas...</p>
+              </div>
+
+              <div id="mesas-config-section" style="display:none;margin-top:24px">
+                <h3 style="margin-bottom:12px">Gerenciar Mesas</h3>
+                <div id="mesas-config-grid" class="mesa-config-grid"></div>
+              </div>
+            </div>
+
+            <div id="mesa-pedido-view">
+              <div class="pedido-header">
+                <button id="pedido-btn-voltar" class="pedido-header-back">←</button>
+                <div class="pedido-header-info">
+                  <p class="pedido-header-title" id="pedido-mesa-titulo">Mesa</p>
+                  <p class="pedido-header-sub">Adicione os itens do pedido abaixo</p>
+                </div>
+                <div class="pedido-header-total">
+                  <span>Total</span>
+                  <strong id="pedido-header-total-valor">R$ 0,00</strong>
+                </div>
+              </div>
+
+              <div class="pedido-busca-row">
+                <div class="pedido-autocomplete" id="pedido-autocomplete-wrap" style="flex:1;position:relative">
+                  <input type="text" id="pedido-busca-input"
+                         placeholder="Buscar produto por nome, código ou ref..." autocomplete="off">
+                  <div id="pedido-autocomplete-list" class="pedido-autocomplete-list"></div>
+                </div>
+                <input type="number" id="pedido-qtd-input" value="1" min="0.01" step="0.01" title="Quantidade">
+                <button id="pedido-btn-add-item">+ Adicionar</button>
+              </div>
+
+              <div class="pedido-itens">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produto</th><th>Qtd.</th>
+                      <th style="text-align:right">Unit.</th>
+                      <th style="text-align:right">Subtotal</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="pedido-itens-tbody">
+                    <tr><td colspan="5" class="pedido-vazio">🍽️ Nenhum item ainda.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="pedido-footer">
+                <div class="pedido-total-row">
+                  <span class="pedido-total-label">Total da Mesa</span>
+                  <span class="pedido-total-valor" id="pedido-total-valor">R$ 0,00</span>
+                </div>
+                <div class="pedido-actions">
+                  <button id="pedido-btn-pedir-conta"  class="btn-pedir-conta">🧾 Pedir Conta</button>
+                  <button id="pedido-btn-fechar-conta" class="btn-fechar-conta">✅ Fechar Conta</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ═════════════ MOVIMENTAÇÕES ═════════════ -->
+        <section id="movements" class="section">
+          <h1>Nova Movimentação de Estoque</h1>
+          <form id="movementForm" class="product-form">
+            <div class="form-group">
+              <label for="movementType">Tipo de Movimentação</label>
+              <select id="movementType" name="movementType" required>
+                  <option value="entrada">Entrada (Adicionar ao Estoque)</option>
+                  <option value="saida">Saída (Subtrair do Estoque)</option>
+              </select>
+            </div>
+            <textarea name="movementReason" id="movementReason" placeholder="Motivo da movimentação (ex: ajuste de inventário, perda, devolução)" rows="2" class="full-width" required></textarea>
+           
+            <fieldset class="item-adder-fieldset full-width">
+              <legend>Adicionar Produtos à Movimentação</legend>
+              <div class="item-adder-controls">
+                <div class="form-group search-group" style="position: relative;">
+                  <input type="text" id="movementProductSearch" placeholder="Buscar por código, ref ou nome..." autocomplete="off">
+                  <div id="movementSearchResults" class="search-results-list"></div>
+                </div>
+                <div class="form-group">
+                  <input type="number" id="movementItemQuantity" placeholder="Qtd." min="1">
+                </div>
+                <button type="button" id="addMovementItemBtn">Adicionar</button>
+              </div>
+            </fieldset>
+
+            <h3 class="full-width list-header">Itens na Movimentação</h3>
+            <table id="movementItemsTable" class="product-table full-width">
+                <thead>
+                    <tr>
+                        <th>Cód</th>
+                        <th>Ref</th>
+                        <th>Nome</th>
+                        <th>Quantidade</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="movementItemsTableBody"></tbody>
+            </table>
+
+            <div class="form-buttons">
+              <button type="submit">Registrar Movimentação</button>
+            </div>
+          </form>
+
+          <h2 style="margin-top: 30px;">Histórico de Transações</h2>
+          <table class="product-table" id="movementHistoryTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Data/Hora</th>
+                <th>Tipo</th>
+                <th>Qtd. de Itens</th>
+                <th>Motivo</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="movementHistoryTableBody"></tbody>
+          </table>
+        </section>
+       
+        <!-- ═════════════ FINANCEIRO ═════════════ -->
+        <section id="finance" class="section">
+          <nav class="finance-nav">
+            <button class="finance-tab-btn active" data-tab="dashboard">Visão Geral</button>
+            <button class="finance-tab-btn" data-tab="transactions">Lançamentos / Fluxo de Caixa</button>
+            <button class="finance-tab-btn" data-tab="categories">Plano de Contas</button>
+            <button class="finance-tab-btn" data-tab="accounts">Contas / Caixas</button>
+          </nav>
+         
+          <div class="finance-tab-content">
+            <div id="tab-dashboard" class="finance-tab-pane active">
+              <h1>Visão Geral (Dashboard)</h1>
+              <div id="fin-resumo-resultado">
+                <p style="color:#aaa;text-align:center;padding:40px 0">⏳ Carregando resumo financeiro...</p>
+              </div>
+            </div>
+
+            <div id="tab-transactions" class="finance-tab-pane">
+              <h1>Novo Lançamento Financeiro</h1>
+              <form id="transactionForm" class="product-form" style="grid-template-columns: repeat(4, 1fr);">
+                <select name="type" required>
+                  <option value="despesa">Despesa</option>
+                  <option value="receita">Receita</option>
+                </select>
+                <input type="text" name="description" placeholder="Descrição do lançamento" required class="full-width" style="grid-column: span 3;">
+                <input type="number" name="value" placeholder="Valor (R$)" step="0.01" required>
+                <input type="date" name="dueDate" required>
+                <select name="categoryId" id="transactionCategorySelect" required>
+                  <option value="">Selecione a Categoria</option>
+                </select>
+                <select name="accountId" id="transactionAccountSelect" required>
+                  <option value="">Selecione a Conta/Caixa</option>
+                </select>
+                 <select name="status" required>
+                  <option value="Pendente">Pendente</option>
+                  <option value="Pago">Pago/Recebido</option>
+                </select>
+                <div class="form-buttons">
+                  <button type="submit">Adicionar Lançamento</button>
+                </div>
+              </form>
+              <h2 style="margin-top: 30px;">Fluxo de Caixa</h2>
+              <table class="product-table" id="transactionsTable">
+                <thead>
+                  <tr>
+                    <th>Vencimento</th>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Conta</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="transactionsTableBody"></tbody>
+              </table>
+            </div>
+
+            <div id="tab-categories" class="finance-tab-pane">
+              <h1>Cadastro de Categorias (Plano de Contas)</h1>
+              <form id="categoryForm" class="product-form" style="grid-template-columns: repeat(2, 1fr);">
+                <input type="text" name="name" placeholder="Nome da Categoria (ex: Aluguel)" required>
+                <select name="type" required>
+                  <option value="despesa">Despesa</option>
+                  <option value="receita">Receita</option>
+                </select>
+                <div class="form-buttons">
+                  <button type="submit">Salvar Categoria</button>
+                </div>
+              </form>
+              <h2 style="margin-top: 30px;">Categorias Cadastradas</h2>
+              <table class="product-table" id="categoriesTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome da Categoria</th>
+                    <th>Tipo</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="categoriesTableBody"></tbody>
+              </table>
+            </div>
+
+            <div id="tab-accounts" class="finance-tab-pane">
+              <h1>Cadastro de Contas e Caixas</h1>
+              <form id="accountForm" class="product-form" style="grid-template-columns: repeat(2, 1fr);">
+                <input type="text" name="name" placeholder="Nome da Conta (ex: Caixa da Loja)" required>
+                <input type="number" name="initialBalance" placeholder="Saldo Inicial (R$)" step="0.01" value="0">
+                <div class="form-buttons">
+                  <button type="submit">Salvar Conta</button>
+                </div>
+              </form>
+              <h2 style="margin-top: 30px;">Contas Cadastradas</h2>
+              <table class="product-table" id="accountsTable">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome da Conta</th>
+                    <th>Saldo Atual</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="accountsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="pdv-local" class="section"><h1>Ponto de Venda (PDV Local)</h1><p>Em breve.</p></section>
+        
+        <!-- ═════════════ RELATÓRIOS ═════════════ -->
+        <section id="reports" class="section">
+          <div class="reports-layout">
+            <div class="reports-sidebar">
+              <h2>Relatórios</h2>
+              <div class="report-group">
+                <label><i data-lucide="package"></i> Estoque</label>
+                <button class="report-type-btn" data-type="estoque-geral">Posição Geral</button>
+                <button class="report-type-btn" data-type="estoque-baixo">Produtos Abaixo do Mínimo</button>
+                <button class="report-type-btn" data-type="estoque-mov">Movimentações por Período</button>
+              </div>
+              <div class="report-group">
+                <label><i data-lucide="shopping-cart"></i> Vendas</label>
+                <button class="report-type-btn" data-type="vendas-periodo">Vendas por Período</button>
+                <button class="report-type-btn" data-type="vendas-produtos">Produtos Mais Vendidos</button>
+                <button class="report-type-btn" data-type="vendas-pagamento">Formas de Pagamento</button>
+              </div>
+              <div class="report-group">
+                <label><i data-lucide="dollar-sign"></i> Financeiro</label>
+                <button class="report-type-btn" data-type="fin-fluxo">Fluxo de Caixa</button>
+                <button class="report-type-btn" data-type="fin-contas">Contas a Pagar/Receber</button>
+                <button class="report-type-btn" data-type="fin-dre">DRE Simplificado</button>
+              </div>
+            </div>
+
+            <div class="reports-content">
+              <div class="report-toolbar">
+                <div class="report-filters" id="report-filters-container">
+                  <div class="filter-group">
+                    <label>De:</label>
+                    <input type="date" id="rep-filtro-de">
+                  </div>
+                  <div class="filter-group">
+                    <label>Até:</label>
+                    <input type="date" id="rep-filtro-ate">
+                  </div>
+                  <button id="btn-gerar-relatorio" class="btn-confirm">
+                    <i data-lucide="play"></i> Gerar Relatório
+                  </button>
+                </div>
+                <div class="report-actions">
+                  <button id="btn-print-report" class="btn-tool" title="Imprimir">
+                    <i data-lucide="printer"></i>
+                  </button>
+                  <button id="btn-pdf-report" class="btn-tool" title="Exportar PDF">
+                    <i data-lucide="file-text"></i>
+                  </button>
+                </div>
+              </div>
+
+              <div class="report-viewer-container">
+                <!-- Visualização tipo Google Docs (A4) -->
+                <div class="a4-page" id="report-a4-page">
+                  <div class="a4-content-placeholder">
+                    <i data-lucide="file-text" style="width:64px;height:64px;opacity:0.1"></i>
+                    <p>Selecione um relatório ao lado e clique em "Gerar"</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ═════════════ GRUPOS ═════════════ -->
+        <section id="grupos" class="section">
+
+          <div id="grupos-form-container">
+            <div class="grupos-form-faixa"></div>
+            <h2 id="grupo-form-titulo">Novo Grupo ou Subgrupo</h2>
+            <span id="grupo-pai-display"></span>
+
+            <form id="grupoForm">
+              <input type="hidden" id="grupoIdPai" name="id_pai" value="">
+
+              <div>
+                <label>Nome do Grupo *</label>
+                <input type="text" name="grupoNome" id="grupoNome" placeholder="Ex: Bebidas, Carnes, Sobremesas..." required>
+              </div>
+
+              <div>
+                <label>Ícone (emoji)</label>
+                <div class="icone-preview">
+                  <input type="text" name="grupoIcone" id="grupoIcone" placeholder="🍕" maxlength="6"
+                         oninput="document.getElementById('grupo-icone-preview').textContent=this.value">
+                  <span id="grupo-icone-preview"></span>
+                </div>
+              </div>
+
+              <div class="form-buttons">
+                <button type="submit">Salvar Grupo</button>
+                <button type="button" id="btn-cancelar-grupo" style="display:none;">Cancelar</button>
+              </div>
+            </form>
+          </div>
+
+          <h2>Grupos Cadastrados</h2>
+          <div id="grupos-lista" class="grupos-lista">
+          </div>
+        </section>
+
+        <!-- ═════════════ DADOS DA EMPRESA ═════════════ -->
+        <section id="company-data" class="section">
+          <h1>Dados da Empresa</h1>
+
+          <div id="segmento-descricao"
+               style="background:#f0e8ff;border-left:4px solid #4a148c;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:14px;color:#333">
+          </div>
+
+          <form id="companyDataForm" class="product-form" style="grid-template-columns:repeat(2,1fr)">
+
+            <div class="form-group">
+              <label>Razão Social *</label>
+              <input type="text" id="empresa-razao-social" name="empresa-razao-social" required>
+            </div>
+            <div class="form-group">
+              <label>Nome Fantasia</label>
+              <input type="text" id="empresa-nome-fantasia" name="empresa-nome-fantasia">
+            </div>
+            <div class="form-group">
+              <label>CNPJ / CPF</label>
+              <input type="text" id="empresa-cnpj" name="empresa-cnpj">
+            </div>
+            <div class="form-group">
+              <label>E-mail</label>
+              <input type="email" id="empresa-email" name="empresa-email">
+            </div>
+            <div class="form-group">
+              <label>Telefone</label>
+              <input type="text" id="empresa-telefone" name="empresa-telefone">
+            </div>
+            <div class="form-group">
+              <label>CEP</label>
+              <input type="text" id="empresa-cep" name="empresa-cep">
+            </div>
+            <div class="form-group">
+              <label>Logradouro</label>
+              <input type="text" id="empresa-logradouro" name="empresa-logradouro">
+            </div>
+            <div class="form-group">
+              <label>Número</label>
+              <input type="text" id="empresa-numero" name="empresa-numero">
+            </div>
+            <div class="form-group">
+              <label>Bairro</label>
+              <input type="text" id="empresa-bairro" name="empresa-bairro">
+            </div>
+            <div class="form-group">
+              <label>Cidade</label>
+              <input type="text" id="empresa-cidade" name="empresa-cidade">
+            </div>
+            <div class="form-group">
+              <label>UF</label>
+              <input type="text" id="empresa-uf" name="empresa-uf" maxlength="2" style="text-transform:uppercase">
+            </div>
+
+            <div class="form-group" style="grid-column:span 2">
+              <label style="font-weight:700;font-size:15px">Segmento do Negócio</label>
+              <select id="empresa-segmento" name="empresa-segmento"
+                      style="padding:12px;border:1.5px solid #ddd;border-radius:8px;font-size:15px;margin-top:6px">
+                <option value="varejista">🏪 Varejista (Padrão) — PDV com código de barras</option>
+                <option value="restaurante">🍽️ Restaurante — Gestão de mesas + PDV Avulso</option>
+              </select>
+              <p style="font-size:12px;color:#888;margin-top:6px">
+                ⚠️ Alterar o segmento muda o comportamento do PDV imediatamente após salvar.
+              </p>
+            </div>
+
+            <div class="form-buttons" style="grid-column:span 2">
+              <button type="submit" class="btn-confirm">💾 Salvar Dados da Empresa</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- ═════════════ USUÁRIOS ═════════════ -->
+        <section id="users" class="section">
+          <h1>Usuários e Perfis</h1>
+          <nav class="finance-nav">
+            <button class="users-tab-btn finance-tab-btn active" data-tab="usuarios">Usuários</button>
+            <button class="users-tab-btn finance-tab-btn"        data-tab="perfis">Perfis e Permissões</button>
+          </nav>
+
+          <div id="utab-usuarios" class="users-tab-pane active">
+            <h2 style="margin:20px 0 14px">Cadastrar / Editar Usuário</h2>
+            <form id="userForm" class="product-form" style="grid-template-columns:repeat(2,1fr)">
+              <input type="text"     name="userName"     placeholder="Nome completo" required>
+              <input type="email"    name="userEmail"    placeholder="E-mail de login" required>
+              <input type="password" name="userPassword" placeholder="Senha (obrigatória)" required>
+              <select name="userPerfil" id="userPerfil" required>
+                <option value="">Selecione um Perfil</option>
+              </select>
+              <div class="form-buttons" style="grid-column:span 2">
+                <button type="submit">Criar Usuário</button>
+                <button type="button" id="cancelarEdicaoUsuario" style="display:none">Cancelar</button>
+              </div>
+            </form>
+            <h2 style="margin-top:28px">Usuários Cadastrados</h2>
+            <table class="product-table">
+              <thead><tr><th>ID</th><th>Nome</th><th>E-mail</th><th>Perfil</th><th>Status</th><th>Ações</th></tr></thead>
+              <tbody id="usersTableBody"></tbody>
+            </table>
+          </div>
+
+          <div id="utab-perfis" class="users-tab-pane">
+            <h2 style="margin:20px 0 14px">Criar / Editar Perfil de Acesso</h2>
+            <form id="perfilForm" class="product-form" style="grid-template-columns:repeat(2,1fr)">
+              <input type="text" name="perfilNome"      placeholder="Nome do Perfil (ex: Caixa, Gerente)" required>
+              <input type="text" name="perfilDescricao" placeholder="Descrição do perfil">
+              <div class="full-width" style="grid-column:span 2">
+                <label style="font-weight:600;display:block;margin-bottom:10px">Módulos com Acesso:</label>
+                <div id="permissoes-matrix" class="permissoes-matrix"></div>
+              </div>
+              <div class="form-buttons" style="grid-column:span 2">
+                <button type="submit">Criar Perfil</button>
+              </div>
+            </form>
+            <h2 style="margin-top:28px">Perfis Cadastrados</h2>
+            <table class="product-table">
+              <thead><tr><th>ID</th><th>Nome</th><th>Descrição</th><th>Permissões</th><th>Ações</th></tr></thead>
+              <tbody id="perfisTableBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- ═════════════ MODAIS ═════════════ -->
+  
+  <div id="modal-abrir-mesa" class="modal" style="display:none">
+    <div class="modal-content" style="max-width:360px;text-align:center;padding:32px 24px">
+      <p style="font-size:18px;font-weight:700;margin-bottom:8px" id="abrir-mesa-titulo">Abrir Mesa?</p>
+      <p style="color:#666;font-size:14px;margin-bottom:24px">Isso criará uma conta em aberto para esta mesa.</p>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="btn-cancelar-abrir-mesa"
+                style="flex:1;padding:12px;border:1.5px solid #ddd;border-radius:8px;background:#fff;font-weight:600;cursor:pointer">
+          Cancelar
+        </button>
+        <button id="btn-confirmar-abrir-mesa"
+                style="flex:1;padding:12px;border:none;border-radius:8px;background:#4a148c;color:#fff;font-weight:700;cursor:pointer">
+          <i data-lucide="check" style="width:16px;height:16px;margin-right:4px;vertical-align:middle"></i> Abrir Mesa
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-fechar-conta" class="modal fechar-conta-modal" style="display:none">
+    <div class="modal-content">
+      <h2 style="margin-bottom:16px">Fechar Conta</h2>
+      <div class="fechar-conta-summary" id="fechar-conta-itens"></div>
+      <div class="desconto-row">
+        <label>Desconto (R$):</label>
+        <input type="number" id="fechar-desconto" value="0" min="0" step="0.01">
+      </div>
+      <div class="fechar-conta-total">
+        <span>Total a Cobrar</span>
+        <span id="fechar-conta-total">R$ 0,00</span>
+      </div>
+      <p style="font-size:13px;font-weight:700;color:#555;margin-bottom:8px">Forma de Pagamento:</p>
+      <div class="forma-pagamento-grid">
+        <button class="forma-btn selected" data-forma="DINHEIRO"><i data-lucide="banknote" style="width:16px;height:16px;margin-right:6px"></i> Dinheiro</button>
+        <button class="forma-btn"          data-forma="PIX"><i data-lucide="smartphone" style="width:16px;height:16px;margin-right:6px"></i> PIX</button>
+        <button class="forma-btn"          data-forma="DEBITO"><i data-lucide="credit-card" style="width:16px;height:16px;margin-right:6px"></i> Débito</button>
+        <button class="forma-btn"          data-forma="CREDITO"><i data-lucide="credit-card" style="width:16px;height:16px;margin-right:6px"></i> Crédito</button>
+        <button class="forma-btn"          data-forma="VOUCHER"><i data-lucide="ticket" style="width:16px;height:16px;margin-right:6px"></i> Voucher</button>
+        <button class="forma-btn"          data-forma="FIADO"><i data-lucide="file-text" style="width:16px;height:16px;margin-right:6px"></i> Fiado</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:4px">
+        <button id="btn-cancelar-fechamento"
+                style="flex:1;padding:13px;border:1.5px solid #ddd;border-radius:8px;background:#fff;font-weight:600;cursor:pointer">
+          Cancelar
+        </button>
+        <button id="btn-confirmar-fechamento"
+                style="flex:1;padding:13px;border:none;border-radius:8px;background:#ffb700;color:#1a1a2e;font-weight:800;cursor:pointer;font-size:15px">
+          <i data-lucide="check-circle" style="width:18px;height:18px;margin-right:6px;vertical-align:middle"></i> Confirmar Pagamento
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="purchaseDetailModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Detalhes da NFe</h2>
+      <div class="modal-header-info">
+        <p><strong>Fornecedor:</strong> <span id="modalSupplierName"></span></p>
+        <p><strong>CNPJ:</strong> <span id="modalSupplierCnpj"></span></p>
+        <p><strong>Data do Lançamento:</strong> <span id="modalPurchaseDate"></span></p>
+        <p><strong>Valor Total:</strong> <strong id="modalPurchaseTotal"></strong></p>
+      </div>
+      <table class="product-table" style="margin-top: 20px;">
+        <thead>
+          <tr>
+            <th>Cód. Fornecedor</th>
+            <th>Descrição</th>
+            <th>Qtd</th>
+            <th>Custo UN</th>
+            <th>Custo Total</th>
+          </tr>
+        </thead>
+        <tbody id="modalItemsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <div id="movementDetailModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Detalhes da Movimentação</h2>
+      <div id="movementModalDetails"></div>
+      <table class="product-table" style="margin-top: 20px;">
+        <thead>
+          <tr>
+            <th>Cód.</th>
+            <th>Referência</th>
+            <th>Produto</th>
+            <th>Quantidade Movida</th>
+          </tr>
+        </thead>
+        <tbody id="movementModalItemsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="notificationModal" class="modal">
+    <div class="modal-content">
+      <h2 id="notificationTitle"></h2>
+      <p id="notificationMessage"></p>
+      <button id="notificationCloseBtn">OK</button>
+    </div>
+  </div>
+
+  <div id="productSelectionModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Selecionar Produto</h2>
+      <input type="text" id="modalProductSearch" placeholder="Pesquisar produtos..." class="modal-search-input">
+      <div id="modalProductList" class="modal-product-list">
+        </div>
+    </div>
+  </div>
+
+  <div id="confirmationModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2 id="confirmationTitle">Confirmação</h2>
+      <p id="confirmationMessage"></p>
+      <div class="modal-buttons">
+        <button id="confirmActionBtn" class="btn-confirm">Sim</button>
+        <button id="cancelActionBtn" class="btn-cancel">Não</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="chatbot-window">
+    <div class="chatbot-header">
+      <span>Assistente Virtual</span>
+      <button id="closeChatbot">&times;</button>
+    </div>
+    <div class="chatbot-messages" id="chatbotMessages">
+      </div>
+    <div class="chatbot-input-area">
+      <input type="text" id="chatbotInput" placeholder="Digite sua dúvida...">
+      <button id="chatbotSendBtn">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+      </button>
+    </div>
+  </div>
+
+  <div id="profileModal" class="modal">
+    <div class="modal-content">
+      <span class="modal-close">&times;</span>
+      <h2>Editar Informações Pessoais</h2>
+      <form id="profileForm" class="modal-form">
+        <div class="form-group">
+          <label for="profileNameInput">Nome Completo</label>
+          <input type="text" id="profileNameInput" required>
+        </div>
+        <div class="form-group">
+          <label for="profileEmailInput">Email</label>
+          <input type="email" id="profileEmailInput" required>
+        </div>
+        <div class="form-group">
+          <label for="profilePasswordInput">Nova Senha (deixe em branco para não alterar)</label>
+          <input type="password" id="profilePasswordInput">
+        </div>
+        <div class="modal-buttons">
+          <button type="submit" class="btn-confirm">Salvar Alterações</button>
+          <button type="button" class="btn-cancel modal-close-btn">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═════════════ SCRIPTS ═════════════ -->
+  <script src="script.js"></script>
+  <script src="js/mobile.js"></script>
+  <script src="js/sgc_dashboard.js"></script>
+  <script src="js/sgc_financeiro.js"></script>
+  <script src="js/sgc_empresa.js"></script>
+  <script src="js/sgc_relatorios.js"></script>
+  <script src="js/sgc_mesas.js"></script>
+  <script src="js/sgc_grupos.js"></script>
+
+  <!-- ═════════════ OFFLINE FIRST ═════════════ -->
+  <script type="module">
+    import { sgcDB }   from './js/db.js';
+    import { sgcSync } from './js/sync.js';
+
+    // Escuta eventos do motor de sync para atualizar a UI
+    sgcSync.on('offline', () => {
+      document.getElementById('offline-banner')?.classList.add('visible');
+      document.body.classList.add('is-offline');
+      const pdvInd = document.getElementById('pdv-offline-indicator');
+      if (pdvInd) pdvInd.classList.add('visible');
+    });
+
+    sgcSync.on('online', () => {
+      document.getElementById('offline-banner')?.classList.remove('visible');
+      document.body.classList.remove('is-offline');
+      const pdvInd = document.getElementById('pdv-offline-indicator');
+      if (pdvInd) pdvInd.classList.remove('visible');
+    });
+
+    sgcSync.on('sync-fim', ({ resultado }) => {
+      const total = (resultado.vendas?.filter(v => v.success).length || 0)
+                  + (resultado.movimentacoes?.filter(m => m.success).length || 0);
+      if (total > 0) mostrarSyncToast(`✅ ${total} operação(ões) sincronizada(s)!`, 'ok');
+    });
+
+    sgcSync.on('sync-erro', (msg) => {
+      mostrarSyncToast(`❌ Falha na sincronização: ${msg}`, 'erro');
+    });
+
+    sgcSync.on('furo-estoque', (furos) => {
+      mostrarSyncToast(`⚠️ ${furos.length} furo(s) de estoque detectado(s). Verifique o relatório.`, 'pendente', 6000);
+    });
+
+    function mostrarSyncToast(msg, tipo = 'ok', duracao = 3500) {
+      const el = document.getElementById('sync-toast');
+      if (!el) return;
+      el.textContent  = msg;
+      el.className    = `visible ${tipo}`;
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => el.classList.remove('visible'), duracao);
+    }
+
+    // Expõe para uso em outros scripts
+    window.sgcDB   = sgcDB;
+    window.sgcSync = sgcSync;
+  </script>
+
+  <!-- ═════════════ SERVICE WORKER ═════════════ -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', async () => {
+        try {
+          const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+          console.log('[PWA] Service Worker registrado:', reg.scope);
+
+          reg.addEventListener('updatefound', () => {
+            const novo = reg.installing;
+            novo.addEventListener('statechange', () => {
+              if (novo.state === 'installed' && navigator.serviceWorker.controller) {
+                if (confirm('Nova versão do SGC disponível! Atualizar agora?')) {
+                  novo.postMessage({ type: 'SKIP_WAITING' });
+                  window.location.reload();
+                }
+              }
+            });
+          });
+        } catch (e) {
+          console.warn('[PWA] Falha ao registrar Service Worker:', e.message);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

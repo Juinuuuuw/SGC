@@ -1,8 +1,9 @@
 // src/screens/LoginScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   KeyboardAvoidingView, Platform, ScrollView, Alert,
+  Image, Animated, Easing,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { Input, Button } from '../components/ui';
@@ -17,6 +18,66 @@ export default function LoginScreen() {
   const [showConfig, setShowConfig] = useState(false);
   const [serverUrl, setServerUrl] = useState('');
 
+  // ═══ ANIMAÇÕES ═══
+  const logoSlideY = useRef(new Animated.Value(-300)).current;   // Logo começa de cima
+  const logoOpacity = useRef(new Animated.Value(0)).current;      // Logo começa invisível
+  const cardSlideY = useRef(new Animated.Value(100)).current;     // Card começa de baixo
+  const cardOpacity = useRef(new Animated.Value(0)).current;      // Card começa invisível
+  const configOpacity = useRef(new Animated.Value(0)).current;    // Config começa invisível
+  const versionOpacity = useRef(new Animated.Value(0)).current;   // Versão começa invisível
+
+  useEffect(() => {
+    // Animação de entrada ao montar a tela
+    Animated.sequence([
+      // Pequena pausa inicial
+      Animated.delay(200),
+      
+      // Logo desce e aparece
+      Animated.parallel([
+        Animated.timing(logoSlideY, {
+          toValue: 0,
+          duration: 700,
+          easing: Easing.out(Easing.back(1.2)),
+          useNativeDriver: true,
+        }),
+        Animated.timing(logoOpacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+      
+      // Card sobe e aparece
+      Animated.parallel([
+        Animated.timing(cardSlideY, {
+          toValue: 0,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(cardOpacity, {
+          toValue: 1,
+          duration: 500,
+          useNativeDriver: true,
+        }),
+      ]),
+      
+      // Config e versão aparecem
+      Animated.parallel([
+        Animated.timing(configOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+        Animated.timing(versionOpacity, {
+          toValue: 1,
+          duration: 400,
+          useNativeDriver: true,
+        }),
+      ]),
+    ]).start();
+  }, []);
+
   const handleLogin = async () => {
     if (!email.trim() || !senha.trim()) {
       Alert.alert('Atenção', 'Preencha e-mail e senha para continuar.');
@@ -25,7 +86,32 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       const result = await login(email.trim(), senha);
-      if (!result.success) {
+      if (result.success) {
+        // Anima a saída antes de navegar
+        Animated.parallel([
+          Animated.timing(logoOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(cardOpacity, {
+            toValue: 0,
+            duration: 300,
+            useNativeDriver: true,
+          }),
+          Animated.timing(configOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+          Animated.timing(versionOpacity, {
+            toValue: 0,
+            duration: 200,
+            useNativeDriver: true,
+          }),
+        ]).start();
+        // O redirecionamento é feito pelo AuthContext após o login
+      } else {
         Alert.alert('Acesso negado', result.message || 'Credenciais inválidas.');
       }
     } catch (e) {
@@ -47,24 +133,47 @@ export default function LoginScreen() {
   }, []);
 
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        {/* Logo */}
-        <View style={styles.logoArea}>
-          <View style={styles.logoCircle}>
-            <Text style={styles.logoEmoji}>🏪</Text>
-          </View>
-          <Text style={styles.logoTitle}>SGC Mobile</Text>
+    <KeyboardAvoidingView 
+      style={styles.container} 
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <ScrollView 
+        contentContainerStyle={styles.scroll} 
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Área da logo — Animada */}
+        <Animated.View 
+          style={[
+            styles.logoArea,
+            { 
+              opacity: logoOpacity,
+              transform: [{ translateY: logoSlideY }]
+            }
+          ]}
+        >
+          <Image 
+            source={require('../../assets/icon.png')} 
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.logoTitle}>SGC</Text>
           <Text style={styles.logoSub}>Sistema de Gestão Comercial</Text>
-        </View>
+        </Animated.View>
 
-        {/* Card */}
-        <View style={styles.card}>
-          <Text style={styles.cardTitle}>Entrar</Text>
+        {/* Card de login — Animado */}
+        <Animated.View 
+          style={[
+            styles.card,
+            { 
+              opacity: cardOpacity,
+              transform: [{ translateY: cardSlideY }]
+            }
+          ]}
+        >
+          <Text style={styles.cardTitle}>Acessar o sistema</Text>
 
           <Input
             label="E-mail"
-            icon="✉️"
             value={email}
             onChangeText={setEmail}
             placeholder="seu@email.com"
@@ -75,82 +184,202 @@ export default function LoginScreen() {
 
           <Input
             label="Senha"
-            icon="🔒"
             value={senha}
             onChangeText={setSenha}
             placeholder="••••••••"
             secureTextEntry
           />
 
+          <TouchableOpacity style={styles.forgotBtn}>
+            <Text style={styles.forgotTxt}>Esqueceu a senha?</Text>
+          </TouchableOpacity>
+
           <Button
             title="Entrar"
             onPress={handleLogin}
             loading={loading}
-            style={{ marginTop: spacing.sm }}
+            style={styles.loginBtn}
+            textStyle={styles.loginBtnText}
           />
-        </View>
+        </Animated.View>
 
-        {/* Config servidor */}
-        <TouchableOpacity onPress={() => setShowConfig(!showConfig)} style={styles.configBtn}>
-          <Text style={styles.configTxt}>⚙️ Configurar servidor</Text>
-        </TouchableOpacity>
-
-        {showConfig && (
-          <View style={styles.configCard}>
-            <Text style={styles.configLabel}>URL do servidor</Text>
-            <Input
-              value={serverUrl}
-              onChangeText={setServerUrl}
-              placeholder="http://192.168.1.100/sgc/api"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-            <Button title="Salvar" onPress={handleSaveConfig} variant="outline" />
-            <Text style={styles.configHint}>
-              Ex: http://IP_DO_SERVIDOR/sgc/api
+        {/* Configuração do servidor — Animado */}
+        <Animated.View style={{ opacity: configOpacity }}>
+          <TouchableOpacity 
+            onPress={() => setShowConfig(!showConfig)} 
+            style={styles.configToggle}
+          >
+            <Text style={styles.configToggleTxt}>
+              ⚙️ {showConfig ? 'Ocultar' : 'Configurar'} servidor
             </Text>
-          </View>
-        )}
+          </TouchableOpacity>
 
-        <Text style={styles.version}>SGC Mobile v1.0</Text>
+          {showConfig && (
+            <View style={styles.configCard}>
+              <Text style={styles.configLabel}>URL do Servidor</Text>
+              <Text style={styles.configHint}>
+                Ex: http://192.168.1.100/sgc/api
+              </Text>
+              <Input
+                value={serverUrl}
+                onChangeText={setServerUrl}
+                placeholder="http://192.168.1.100/sgc/api"
+                autoCapitalize="none"
+                autoCorrect={false}
+                icon="🔗"
+              />
+              <Button 
+                title="Salvar endereço" 
+                onPress={handleSaveConfig} 
+                variant="outline"
+                style={{ marginTop: spacing.sm }}
+              />
+            </View>
+          )}
+        </Animated.View>
+
+        {/* Versão — Animado */}
+        <Animated.Text 
+          style={[
+            styles.version,
+            { opacity: versionOpacity }
+          ]}
+        >
+          SGC Mobile v1.0
+        </Animated.Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.primary },
-  scroll: { flexGrow: 1, padding: spacing.lg, paddingTop: 72 },
-  logoArea: { alignItems: 'center', marginBottom: spacing.xl },
-  logoCircle: {
-    width: 88, height: 88, borderRadius: 44,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: spacing.md,
-    ...shadow.md,
+  container: { 
+    flex: 1, 
+    backgroundColor: colors.background,
   },
-  logoEmoji: { fontSize: 44 },
-  logoTitle: { fontSize: fontSize.xxxl, color: colors.white, fontWeight: '800', letterSpacing: -0.5 },
-  logoSub: { fontSize: fontSize.sm, color: 'rgba(255,255,255,0.7)', marginTop: 4 },
+  scroll: { 
+    flexGrow: 1, 
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  
+  // ═══ LOGO AREA ═══
+  logoArea: { 
+    alignItems: 'center', 
+    paddingTop: 80,
+    paddingBottom: spacing.xl,
+    marginHorizontal: -spacing.lg,
+    backgroundColor: '#3e1c67',
+    borderBottomLeftRadius: radius.xl,
+    borderBottomRightRadius: radius.xl,
+    marginBottom: -20,
+    ...shadow.lg,
+  },
+  
+  // ═══ ÍCONE ═══
+  logoImage: {
+    width: 80,
+    height: 80,
+    marginBottom: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    padding: 8,
+  },
+  
+  // ═══ SGC (branco) ═══
+  logoTitle: { 
+    fontSize: 36, 
+    color: '#ffffff',
+    fontWeight: '800', 
+    letterSpacing: 3,
+  },
+  
+  // ═══ Sistema de Gestão Comercial (amarelo) ═══
+  logoSub: { 
+    fontSize: fontSize.sm, 
+    color: '#ffb700',
+    fontWeight: '600',
+    marginTop: 4,
+    letterSpacing: 0.5,
+  },
+  
+  // ═══ CARD DE LOGIN ═══
   card: {
     backgroundColor: colors.white,
     borderRadius: radius.xl,
     padding: spacing.lg,
     ...shadow.lg,
+    zIndex: 1,
   },
   cardTitle: {
-    fontSize: fontSize.xxl, fontWeight: '800', color: colors.text,
+    fontSize: fontSize.xl, 
+    fontWeight: '700', 
+    color: colors.text,
     marginBottom: spacing.lg,
+    textAlign: 'center',
   },
-  configBtn: { alignItems: 'center', paddingVertical: spacing.md },
-  configTxt: { color: 'rgba(255,255,255,0.65)', fontSize: fontSize.sm },
+  
+  // ═══ ESQUECEU SENHA ═══
+  forgotBtn: {
+    alignItems: 'flex-end',
+    marginBottom: spacing.md,
+    marginTop: -spacing.sm,
+  },
+  forgotTxt: {
+    color: '#3e1c67',
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+  },
+  
+  // ═══ BOTÃO ENTRAR ═══
+  loginBtn: {
+    backgroundColor: '#3e1c67',
+    borderRadius: radius.sm,
+    paddingVertical: 14,
+    ...shadow.sm,
+  },
+  loginBtnText: {
+    color: colors.white,
+    fontSize: fontSize.md,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  
+  // ═══ CONFIG ═══
+  configToggle: { 
+    alignItems: 'center', 
+    paddingVertical: spacing.md,
+    marginTop: spacing.sm,
+  },
+  configToggleTxt: { 
+    color: colors.textSecondary, 
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+  },
   configCard: {
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: colors.white,
     borderRadius: radius.lg,
     padding: spacing.md,
     marginBottom: spacing.md,
+    ...shadow.sm,
   },
-  configLabel: { color: colors.white, fontSize: fontSize.sm, fontWeight: '600', marginBottom: spacing.sm },
-  configHint: { color: 'rgba(255,255,255,0.5)', fontSize: fontSize.xs, marginTop: spacing.sm, textAlign: 'center' },
-  version: { textAlign: 'center', color: 'rgba(255,255,255,0.35)', fontSize: fontSize.xs, marginTop: spacing.xl },
+  configLabel: { 
+    color: colors.text, 
+    fontSize: fontSize.sm, 
+    fontWeight: '600', 
+    marginBottom: spacing.xs,
+  },
+  configHint: { 
+    color: colors.textMuted, 
+    fontSize: fontSize.xs, 
+    marginBottom: spacing.sm,
+  },
+  
+  // ═══ VERSÃO ═══
+  version: { 
+    textAlign: 'center', 
+    color: colors.textMuted, 
+    fontSize: fontSize.xs, 
+    marginTop: spacing.lg,
+  },
 });

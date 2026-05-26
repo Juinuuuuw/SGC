@@ -1,0 +1,62 @@
+/* --- MOVIMENTAÇÕES DE ESTOQUE --- */
+.item-adder-fieldset {
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 15px 20px;
+  margin-top: 10px;
+}
+.item-adder-fieldset legend {
+  padding: 0 10px;
+  font-weight: 500;
+  color: #555;
+  font-size: 14px;
+}
+.item-adder-controls {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 15px;
+  align-items: flex-end;
+}
+.item-adder-controls .search-group {
+  flex-grow: 1;
+}
+#movementItemQuantity {
+  width: 100px;
+}
+#addMovementItemBtn {
+  background-color: #3498db;
+  height: 40px;
+}
+#addMovementItemBtn:hover {
+  background-color: #2980b9;
+}
+.list-header {
+  margin-top: 20px;
+  margin-bottom: -10px;
+  grid-column: 1 / -1;
+  font-size: 16px;
+}
+#movementItemsTable {
+  margin-top: 0;
+}
+.search-results-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+}
+.movement-type-entrada {
+  color: #27ae60;
+  font-weight: bold;
+}
+.movement-type-saida {
+  color: #e74c3c;
+  font-weight: bold;
+}

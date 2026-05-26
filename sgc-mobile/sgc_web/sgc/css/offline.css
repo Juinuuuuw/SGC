@@ -1,0 +1,245 @@
+/* ============================================================
+   offline.css — Indicadores visuais de status Offline / Sync
+   ============================================================ */
+
+/* ── Badge de status na top-bar ─────────────────────────────── */
+.sync-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  transition: background 0.3s, color 0.3s;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.sync-badge--online {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.sync-badge--offline {
+  background: #ffebee;
+  color: #c62828;
+  animation: pulse-offline 2s ease-in-out infinite;
+}
+
+.sync-badge--pendente {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.sync-badge--sincronizando {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.sync-badge--sincronizando::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border: 2px solid #1565c0;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 2px;
+}
+
+@keyframes pulse-offline {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Banner de aviso no topo (modo offline) ─────────────────── */
+#offline-banner {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: linear-gradient(135deg, #b71c1c, #c62828);
+  color: #fff;
+  padding: 10px 20px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#offline-banner.visible {
+  display: flex;
+}
+
+#offline-banner .banner-icon { font-size: 18px; }
+
+#offline-banner .banner-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+#offline-banner button {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.4);
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#offline-banner button:hover {
+  background: rgba(255,255,255,0.35);
+}
+
+/* Quando o banner está visível, empurra o conteúdo para baixo */
+body.is-offline .dashboard {
+  margin-top: 40px;
+}
+
+/* ── Botão "Sincronizar Agora" ───────────────────────────────── */
+#btn-sync-agora {
+  display: none; /* controlado pelo sync.js */
+  align-items: center;
+  gap: 6px;
+  background: #fff3e0;
+  border: 1px solid #ffb300;
+  color: #e65100;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#btn-sync-agora:hover { background: #ffe0b2; }
+
+#sync-pendentes-count {
+  background: #ff6f00;
+  color: #fff;
+  border-radius: 10px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+/* ── Modal de histórico offline ─────────────────────────────── */
+#offline-history-modal .modal-content {
+  max-width: 600px;
+}
+
+.offline-history-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.offline-history-item.pendente   { background: #fff8e1; border-color: #ffb300; }
+.offline-history-item.sincronizado{ background: #e8f5e9; border-color: #4caf50; }
+.offline-history-item.erro       { background: #ffebee; border-color: #f44336; }
+
+.offline-history-item .hist-icon  { font-size: 20px; flex-shrink: 0; }
+.offline-history-item .hist-info  { flex: 1; }
+.offline-history-item .hist-title { font-weight: 700; color: #333; }
+.offline-history-item .hist-sub   { font-size: 12px; color: #777; margin-top: 2px; }
+.offline-history-item .hist-total { font-weight: 800; color: #4a148c; font-size: 15px; }
+
+/* ── Indicador no PDV quando offline ────────────────────────── */
+.pdv-offline-indicator {
+  background: #ffebee;
+  border: 1px solid #f44336;
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: none;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #c62828;
+  margin-bottom: 10px;
+}
+
+.pdv-offline-indicator.visible { display: flex; }
+
+/* ── Tag de "Offline" em itens não sincronizados ────────────── */
+.tag-offline {
+  display: inline-block;
+  background: #fff3e0;
+  color: #e65100;
+  border: 1px solid #ffb300;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+.tag-furo {
+  display: inline-block;
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ef9a9a;
+  border-radius: 12px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  margin-left: 6px;
+}
+
+/* ── Toast de sincronização (canto inferior direito) ─────────── */
+#sync-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9998;
+  background: #1b5e20;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  display: none;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  animation: slide-in-right 0.3s ease;
+}
+
+#sync-toast.visible  { display: flex; }
+#sync-toast.erro     { background: #b71c1c; }
+#sync-toast.pendente { background: #e65100; }
+
+@keyframes slide-in-right {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* ── Responsividade ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  #offline-banner { font-size: 12px; padding: 8px 12px; }
+  #sync-toast     { bottom: 12px; right: 12px; left: 12px; max-width: 100%; }
+  .sync-badge     { font-size: 11px; padding: 3px 9px; }
+}

@@ -2,16 +2,24 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
-  Alert, Modal, ScrollView, TextInput, Platform,
+  Alert, Modal, ScrollView, TextInput, ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { XMLParser } from 'fast-xml-parser';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import BarcodeScanner from '../components/BarcodeScanner';
-import { Button, Card, EmptyState, Badge, Input } from '../components/ui';
-import { getFornecedores, salvarConferencia } from '../services/api';
+import { Button, Card, EmptyState, Input } from '../components/ui';
+import { 
+  getFornecedores, 
+  salvarConferencia, 
+  getProdutoByBarcode,
+  getCompras,
+  getCompraItens,
+} from '../services/api';
 import { colors, spacing, radius, fontSize, shadow } from '../utils/theme';
+import { Ionicons, MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 
 const MODOS = {
@@ -25,6 +33,8 @@ export default function ConferenciaScreen() {
   const insets = useSafeAreaInsets();
   const [modo, setModo] = useState(MODOS.INICIO);
   const [fornecedores, setFornecedores] = useState([]);
+  const [comprasPendentes, setComprasPendentes] = useState([]);
+  const [currentCompraId, setCurrentCompraId] = useState(null);
   const [fornecedorSelecionado, setFornecedorSelecionado] = useState(null);
   const [numeroNota, setNumeroNota] = useState('');
   const [itensConferencia, setItensConferencia] = useState([]);
@@ -34,18 +44,64 @@ export default function ConferenciaScreen() {
   const [resumoModal, setResumoModal] = useState(false);
   const [fornecedorModal, setFornecedorModal] = useState(false);
   const [searchForn, setSearchForn] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const barcodeRef = useRef(null);
 
   useFocusEffect(useCallback(() => {
-    getFornecedores().then(data => setFornecedores(Array.isArray(data) ? data : [])).catch(() => {});
+    fetchData();
   }, []));
+
+  const fetchData = async () => {
+    setLoading(true);
+    await Promise.all([carregarFornecedores(), carregarCompras()]);
+    setLoading(false);
+  };
+
+  const carregarFornecedores = async () => {
+    try {
+      const data = await getFornecedores();
+      setFornecedores(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.log('Erro ao carregar fornecedores:', e);
+    }
+  };
+
+  const carregarCompras = async () => {
+    try {
+      console.log('--- DEBUG CONFERÊNCIA ---');
+      const data = await getCompras();
+      console.log('Total de notas recebidas do servidor:', Array.isArray(data) ? data.length : 'ERRO (não é array)');
+      
+      if (Array.isArray(data)) {
+        // Log para ver os status reais das notas
+        data.forEach((c, i) => {
+          if (i < 5) console.log(`Nota #${c.numero_nota}: Status="${c.status}", EmpresaID=${c.id_empresa}`);
+        });
+
+        // Filtra para exibir apenas notas que não foram totalmente processadas ainda
+        const filtradas = data.filter(c => {
+          const s = (c.status || '').toUpperCase();
+          // Tratamos vazio ou nulo como PENDENTE por segurança
+          return s === 'PENDENTE' || s === 'CONFERIDA' || s === '';
+        });
+        console.log(`Filtradas para o App (PENDENTE/CONFERIDA/EMPTY): ${filtradas.length}`);
+        setComprasPendentes(filtradas);
+      } else {
+        setComprasPendentes([]);
+      }
+      console.log('------------------------');
+    } catch (e) {
+      console.error('Erro ao carregar compras:', e);
+      setComprasPendentes([]);
+    }
+  };
 
   // ── XML Import ──────────────────────────────────────────
   const importarXML = async () => {
     try {
-      // CORREÇÃO 1: Usar '*/*' em vez de 'text/xml' contorna o bug dos gerenciadores de arquivos mobile
       const result = await DocumentPicker.getDocumentAsync({
-        type: '*/*', 
+        type: '*/*',
         copyToCacheDirectory: true,
       });
       
@@ -53,90 +109,166 @@ export default function ConferenciaScreen() {
       
       const asset = result.assets[0];
 
-      // CORREÇÃO 2: Verificamos a extensão manualmente já que liberamos '*/*'
+      console.log('Arquivo selecionado:', asset.name, 'Tamanho:', asset.size);
+
       if (!asset.name.toLowerCase().endsWith('.xml')) {
         Alert.alert('Formato inválido', 'Por favor, selecione um arquivo XML da Nota Fiscal.');
         return;
       }
 
-      const content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      setLoading(true);
+      
+      const content = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: 'utf8'
+      });
+      
+      console.log('XML lido, tamanho:', content.length, 'caracteres');
+      console.log('Primeiros 200 caracteres:', content.substring(0, 200));
+      
       processarXML(content);
+      
     } catch (e) {
-      Alert.alert('Erro', 'Não foi possível ler o arquivo XML.\n' + e.message);
+      console.error('Erro ao importar XML:', e);
+      Alert.alert('Erro', 'Não foi possível ler o arquivo XML.\n' + (e.message || 'Erro desconhecido'));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const processarXML = (xmlContent) => {
+  const processarXML = async (xmlContent) => {
     try {
+      console.log('Iniciando processamento do XML...');
+      
       const parser = new XMLParser({
         ignoreAttributes: false,
         attributeNamePrefix: '@_',
-        parseTagValue: false,       
+        parseTagValue: false,
         trimValues: true,
+        ignoreDeclaration: true,
+        removeNSPrefix: true,
+        isArray: (name) => name === 'det',
       });
-      const json = parser.parse(xmlContent);
+      
+      let json;
+      try {
+        json = parser.parse(xmlContent);
+      } catch (parseError) {
+        const cleaned = xmlContent.replace(/<!DOCTYPE[^>]*>/gi, '').replace(/<\?xml[^>]*\?>/gi, '').trim();
+        json = parser.parse(cleaned);
+      }
 
-      // CORREÇÃO 3: Adicionado suporte para outras raízes XML de NF-e (ex: enviNFe)
-      const nfe =
-        json?.NFe?.infNFe ||           
-        json?.nfeProc?.NFe?.infNFe ||  
-        json?.nfeProcResult?.NFe?.infNFe ||
-        json?.enviNFe?.NFe?.infNFe;
+      const findInfNFe = (obj, depth = 0) => {
+        if (!obj || typeof obj !== 'object' || depth > 15) return null;
+        if (obj.infNFe) return obj.infNFe;
+        if (obj.NFe?.infNFe) return obj.NFe.infNFe;
+        if (obj.nfeProc?.NFe?.infNFe) return obj.nfeProc.NFe.infNFe;
+        for (const key of Object.keys(obj)) {
+          const result = findInfNFe(obj[key], depth + 1);
+          if (result) return result;
+        }
+        return null;
+      };
 
-      if (!nfe) throw new Error('Estrutura <infNFe> não encontrada. Tem a certeza que é uma NF-e válida?');
+      const nfe = findInfNFe(json);
+      if (!nfe) throw new Error('Estrutura <infNFe> não encontrada no XML.');
 
-      // Fornecedor
-      const emit    = nfe.emit || {};
-      const cnpjForn = String(emit.CNPJ || '').replace(/\D/g, '');
-      const nomeForn  = emit.xFant || emit.xNome || 'Fornecedor não identificado';
-      const numNota   = String(nfe.ide?.nNF || '');
+      // Monta objeto para o Backend (compras.php)
+      const emit = nfe.emit || {};
+      const dest = nfe.dest || {};
+      const ide  = nfe.ide  || {};
+      const total = nfe.total?.ICMSTot || {};
 
-      setNumeroNota(numNota);
+      let dets = nfe.det || [];
+      if (!Array.isArray(dets)) dets = [dets];
 
-      const fornEncontrado = fornecedores.find(
-        f => (f.cnpj || '').replace(/\D/g, '') === cnpjForn
-      );
-      setFornecedorSelecionado(
-        fornEncontrado || { cnpj: cnpjForn, razao_social: String(nomeForn), id: null }
-      );
+      const xmlData = {
+        fornecedor: {
+          cnpj: String(emit.CNPJ || emit.cnpj || '').replace(/\D/g, ''),
+          razao_social: emit.xNome || emit.xnome || 'Fornecedor',
+          nome_fantasia: emit.xFant || emit.xfant || emit.xNome || emit.xnome || '',
+          inscricao_estadual: emit.IE || emit.ie || '',
+          logradouro: emit.enderEmit?.xLgr || '',
+          numero: emit.enderEmit?.nro || '',
+          bairro: emit.enderEmit?.xBairro || '',
+          cidade: emit.enderEmit?.xMun || '',
+          uf: emit.enderEmit?.UF || '',
+          cep: emit.enderEmit?.CEP || '',
+        },
+        dados_nota: {
+          numero: String(ide.nNF || ide.nnf || ''),
+          serie: String(ide.serie || ''),
+          data_emissao: ide.dhEmi || ide.dEmi || new Date().toISOString(),
+          valor_total: parseFloat(total.vNF || 0),
+          chave_acesso: nfe['@_Id']?.replace('NFe', '') || '',
+        },
+        itens: dets.map(det => {
+          const p = det.prod || {};
+          return {
+            ean: String(p.cEAN || ''),
+            nome: String(p.xProd || ''),
+            unidade_xml: String(p.uCom || ''),
+            quantidade_xml: parseFloat(p.qCom || 0),
+            preco_custo_xml: parseFloat(p.vUnCom || 0),
+            valor_total_xml: parseFloat(p.vProd || 0),
+            ncm: String(p.NCM || ''),
+            cfop: String(p.CFOP || ''),
+            codigo_fornecedor: String(p.cProd || ''),
+          };
+        })
+      };
 
-      // Itens — det pode ser objeto único ou array
-      const dets = Array.isArray(nfe.det) ? nfe.det : nfe.det ? [nfe.det] : [];
-
-      if (dets.length === 0) throw new Error('Nenhum item encontrado na NF-e.');
-
-      const itens = dets.map((det, i) => {
-        const prod = det.prod || {};
-        const cProd = String(prod.cProd || '').trim();
-        const cEAN  = String(prod.cEAN  || '').trim();
-        const ncm   = String(prod.NCM   || prod.ncm || '').trim();
-        const nome  = String(prod.xProd || 'Produto').trim();
-        const unid  = String(prod.uCom  || 'UN').trim();
-        const qtd   = parseFloat(prod.qCom   || '0') || 0;
-        const preco = parseFloat(prod.vUnCom  || '0') || 0;
-
-        return {
-          _id:          i,
-          cProd,
-          cEAN,
-          nome,
-          ncm,
-          unidade:      unid,
-          qtdNota:      qtd,
-          precoUnitario: preco,
-          qtdConferida: 0,
-          status:       'PENDENTE',
-        };
-      });
-
-      setItensConferencia(itens);
-      setModo(MODOS.CONFERINDO);
+      // Envia para o servidor para criar como PENDENTE
+      const res = await salvarConferencia({ xml_data: xmlData });
+      if (res.success) {
+        Alert.alert('Sucesso', 'Nota fiscal importada como PENDENTE. Você já pode iniciar a conferência.');
+        fetchData(); // recarrega lista
+      } else {
+        Alert.alert('Erro', res.message || 'Falha ao importar XML no servidor.');
+      }
+      
     } catch (e) {
-      Alert.alert('XML Inválido', 'Detalhe do erro: ' + e.message);
+      console.error('Erro ao processar XML:', e);
+      Alert.alert('Erro', e.message || 'Erro ao processar arquivo.');
+    }
+  };
+
+  const iniciarConferenciaExistente = async (compra) => {
+    setLoading(true);
+    try {
+      const itensDB = await getCompraItens(compra.id);
+      if (Array.isArray(itensDB)) {
+        const itens = itensDB.map(i => ({
+          id_item: i.id,
+          id_produto: i.id_produto,
+          nome: i.descricao || i.produto_nome,
+          cProd: i.codigo_fornecedor,
+          cEAN: i.referencia,
+          qtdNota: parseFloat(i.quantidade_comercial),
+          qtdConferida: i.quantidade_conferida !== null ? parseFloat(i.quantidade_conferida) : 0,
+          precoUnitario: parseFloat(i.valor_unitario),
+          unidade: i.unidade_comercial,
+          status: i.quantidade_conferida === null ? 'PENDENTE' : 
+                  Math.abs(parseFloat(i.quantidade_conferida) - parseFloat(i.quantidade_comercial)) < 0.01 ? 'OK' : 'DIVERGENCIA'
+        }));
+        
+        setCurrentCompraId(compra.id);
+        setNumeroNota(compra.numero_nota);
+        setFornecedorSelecionado({ id: compra.id_fornecedor, razao_social: compra.fornecedor_nome });
+        setItensConferencia(itens);
+        setModo(MODOS.CONFERINDO);
+      }
+    } catch (e) {
+      Alert.alert('Erro', 'Não foi possível carregar os itens desta nota.');
+    } finally {
+      setLoading(false);
     }
   };
 
   // ── Manual ──────────────────────────────────────────────
+  const iniciarManual = () => {
+    setModo(MODOS.MANUAL);
+  };
+
   const adicionarItemManual = () => {
     setItensConferencia(prev => [
       ...prev,
@@ -156,47 +288,112 @@ export default function ConferenciaScreen() {
     setModo(MODOS.CONFERINDO);
   };
 
-  // ── Barcode scan na conferência ─────────────────────────
-  const onBarcodeScanned = (data) => {
+  // ── Barcode scan ────────────────────────────────────────
+  const onBarcodeScanned = async (data) => {
     setScannerOpen(false);
     const codigo = String(data).trim();
+    
     const idx = itensConferencia.findIndex(
       i => String(i.cEAN).trim() === codigo || String(i.cProd).trim() === codigo
     );
+    
     if (idx >= 0) {
       confirmarItemPorIndex(idx, 1);
     } else {
-      Alert.alert('Produto não encontrado', `Código: ${codigo}\nEsse produto não está na nota.`);
+      try {
+        const produto = await getProdutoByBarcode(codigo);
+        if (produto && produto.id) {
+          Alert.alert(
+            'Produto encontrado',
+            `${produto.nome}\nRef: ${produto.referencia}\n\nEste produto não está na nota. Deseja adicioná-lo?`,
+            [
+              { text: 'Não', style: 'cancel' },
+              { 
+                text: 'Adicionar', 
+                onPress: () => adicionarProdutoAvulso(produto, codigo)
+              }
+            ]
+          );
+        } else {
+          Alert.alert('Não encontrado', `Código "${codigo}" não localizado no sistema.`);
+        }
+      } catch (e) {
+        Alert.alert('Erro', 'Falha ao buscar produto no servidor.');
+      }
     }
   };
 
-  const onBarcodeInputSubmit = () => {
+  const adicionarProdutoAvulso = (produto, codigo) => {
+    setItensConferencia(prev => [
+      ...prev,
+      {
+        _id: Date.now(),
+        cProd: produto.referencia || codigo,
+        cEAN: produto.referencia || codigo,
+        nome: produto.nome,
+        ncm: produto.ncm || '',
+        unidade: produto.unidade_venda || 'UN',
+        qtdNota: 1,
+        precoUnitario: parseFloat(produto.preco_custo || produto.preco_venda || 0),
+        qtdConferida: 1,
+        status: 'OK',
+        id_produto: produto.id,
+      }
+    ]);
+  };
+
+  const onBarcodeInputSubmit = async () => {
     const val = barcodeInput.trim();
     if (!val) return;
+    
     const idx = itensConferencia.findIndex(
       i =>
         String(i.cEAN).trim()  === val ||
         String(i.cProd).trim() === val ||
         i.nome.toLowerCase().includes(val.toLowerCase())
     );
+    
     if (idx >= 0) {
       confirmarItemPorIndex(idx, 1);
       setBarcodeInput('');
     } else {
-      Alert.alert('Não encontrado', `"${val}" não está na lista da nota.`);
-      setBarcodeInput('');
+      try {
+        const produto = await getProdutoByBarcode(val);
+        if (produto && produto.id) {
+          Alert.alert(
+            'Produto encontrado',
+            `${produto.nome}\nAdicionar à conferência?`,
+            [
+              { text: 'Não', style: 'cancel', onPress: () => setBarcodeInput('') },
+              { 
+                text: 'Adicionar', 
+                onPress: () => {
+                  adicionarProdutoAvulso(produto, val);
+                  setBarcodeInput('');
+                }
+              }
+            ]
+          );
+        } else {
+          Alert.alert('Não encontrado', `"${val}" não localizado.`);
+          setBarcodeInput('');
+        }
+      } catch (e) {
+        Alert.alert('Não encontrado', `"${val}" não localizado.`);
+        setBarcodeInput('');
+      }
     }
   };
 
   const confirmarItemPorIndex = (idx, delta) => {
     setItensConferencia(prev => prev.map((item, i) => {
       if (i !== idx) return item;
-      const novaQtd = item.qtdConferida + delta;
+      const novaQtd = Math.max(0, item.qtdConferida + delta);
       const status =
         novaQtd === 0 ? 'PENDENTE'
-        : novaQtd === item.qtdNota ? 'OK'
+        : Math.abs(novaQtd - item.qtdNota) < 0.001 ? 'OK'
         : 'DIVERGENCIA';
-      return { ...item, qtdConferida: Math.max(0, novaQtd), status };
+      return { ...item, qtdConferida: novaQtd, status };
     }));
   };
 
@@ -204,13 +401,32 @@ export default function ConferenciaScreen() {
     setItensConferencia(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
-      if (field === 'qtdConferida') {
-        const qtd = parseFloat(value) || 0;
-        updated.qtdConferida = qtd;
-        updated.status = qtd === 0 ? 'PENDENTE' : qtd === item.qtdNota ? 'OK' : 'DIVERGENCIA';
+      if (field === 'qtdConferida' || field === 'qtdNota') {
+        const qtdConf = field === 'qtdConferida' ? parseFloat(value) || 0 : item.qtdConferida;
+        const qtdNota = field === 'qtdNota' ? parseFloat(value) || 0 : item.qtdNota;
+        updated.qtdConferida = qtdConf;
+        updated.qtdNota = qtdNota;
+        updated.status = qtdConf === 0 ? 'PENDENTE' : Math.abs(qtdConf - qtdNota) < 0.001 ? 'OK' : 'DIVERGENCIA';
       }
       return updated;
     }));
+  };
+
+  const removerItem = (index) => {
+    Alert.alert(
+      'Remover item',
+      'Deseja remover este item da conferência?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Remover', 
+          style: 'destructive',
+          onPress: () => {
+            setItensConferencia(prev => prev.filter((_, i) => i !== index));
+          }
+        }
+      ]
+    );
   };
 
   // ── Salvar ──────────────────────────────────────────────
@@ -219,27 +435,36 @@ export default function ConferenciaScreen() {
       Alert.alert('Atenção', 'Informe o número da nota fiscal.');
       return;
     }
+    
     setSaving(true);
     try {
       const dados = {
-        id_fornecedor: fornecedorSelecionado?.id,
+        id_compra: currentCompraId,
+        id_fornecedor: fornecedorSelecionado?.id || null,
         numero_nota: numeroNota,
         itens: itensConferencia.map(i => ({
+          id_item: i.id_item || null,
           id_produto: i.id_produto || null,
           nome: i.nome,
-          referencia: i.cProd,
-          quantidade: i.qtdConferida,
+          referencia: i.cProd || i.cEAN,
+          ean: i.cEAN,
+          quantidade: i.qtdNota,
+          quantidade_conferida: i.qtdConferida,
           preco_unitario: i.precoUnitario,
           ncm: i.ncm,
         })),
         valor_total: itensConferencia.reduce((a, i) => a + i.qtdConferida * i.precoUnitario, 0),
       };
-      await salvarConferencia(dados);
-      Alert.alert('✅ Sucesso', 'Conferência salva com sucesso!', [
-        { text: 'OK', onPress: resetar },
-      ]);
-    } catch {
-      Alert.alert('Erro', 'Não foi possível salvar a conferência.');
+      
+      const resultado = await salvarConferencia(dados);
+      
+      Alert.alert(
+        'Sucesso', 
+        resultado.message || 'Conferência salva com sucesso!',
+        [{ text: 'OK', onPress: resetar }]
+      );
+    } catch (e) {
+      Alert.alert('Erro', 'Não foi possível salvar a conferência.\n' + (e.message || ''));
     } finally {
       setSaving(false);
     }
@@ -251,6 +476,8 @@ export default function ConferenciaScreen() {
     setFornecedorSelecionado(null);
     setNumeroNota('');
     setBarcodeInput('');
+    setCurrentCompraId(null);
+    fetchData();
   };
 
   // ── Stats ──────────────────────────────────────────────
@@ -258,7 +485,7 @@ export default function ConferenciaScreen() {
   const ok = itensConferencia.filter(i => i.status === 'OK').length;
   const divergencias = itensConferencia.filter(i => i.status === 'DIVERGENCIA').length;
   const pendentes = itensConferencia.filter(i => i.status === 'PENDENTE').length;
-  const progresso = totalItens > 0 ? ok / totalItens : 0;
+  const progresso = totalItens > 0 ? (ok + divergencias) / totalItens : 0;
 
   const filteredForn = fornecedores.filter(f =>
     f.razao_social?.toLowerCase().includes(searchForn.toLowerCase()) ||
@@ -269,65 +496,153 @@ export default function ConferenciaScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={styles.header}>
-        {modo !== MODOS.INICIO && (
+        {(modo !== MODOS.INICIO) && (
           <TouchableOpacity style={styles.backBtn} onPress={resetar}>
-            <Text style={styles.backTxt}>←</Text>
+            <Ionicons name="arrow-back" size={22} color={colors.white} />
           </TouchableOpacity>
         )}
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>📦 Conferência</Text>
+          <Text style={styles.headerTitle}>Conferência</Text>
           <Text style={styles.headerSub}>
-            {modo === MODOS.INICIO ? 'Recebimento de mercadorias' : `${ok}/${totalItens} itens confirmados`}
+            {modo === MODOS.INICIO 
+              ? 'Recebimento de mercadorias' 
+              : `${ok + divergencias}/${totalItens} conferidos`
+            }
           </Text>
         </View>
-        {modo === MODOS.CONFERINDO && (
+        {modo === MODOS.CONFERINDO && totalItens > 0 && (
           <TouchableOpacity style={styles.resumoBtn} onPress={() => setResumoModal(true)}>
-            <Text style={styles.resumoTxt}>📊</Text>
+            <Ionicons name="stats-chart" size={20} color={colors.white} />
           </TouchableOpacity>
         )}
       </View>
+{/* TELA INICIAL */}
+{modo === MODOS.INICIO && (
+  <ScrollView 
+    contentContainerStyle={styles.inicioScroll}
+    refreshControl={
+      <RefreshControl
+        refreshing={refreshing}
+        onRefresh={fetchData}
+        colors={[colors.primary]}
+      />
+    }
+  >
+    <Text style={styles.sectionTitle}>Novo lançamento</Text>
 
-      {/* TELA INICIAL */}
-      {modo === MODOS.INICIO && (
-        <ScrollView contentContainerStyle={styles.inicioScroll}>
-          <Text style={styles.inicioTitle}>Como deseja iniciar?</Text>
+    <TouchableOpacity 
+      style={[styles.opcaoCard, { borderColor: colors.primary }]} 
+      onPress={importarXML}
+      disabled={loading}
+    >
+      <View style={[styles.opcaoIconCircle, { backgroundColor: colors.primary + '15' }]}>
+        <Ionicons name="document-text-outline" size={28} color={colors.primary} />
+      </View>
+      <View style={styles.opcaoInfo}>
+        <Text style={styles.opcaoTitle}>Importar XML (NF-e)</Text>
+        <Text style={styles.opcaoSub}>
+          Carrega automaticamente fornecedor, itens, quantidades e preços
+        </Text>
+      </View>
+      {loading ? (
+        <ActivityIndicator color={colors.primary} />
+      ) : (
+        <Ionicons name="chevron-forward" size={22} color={colors.textMuted} />
+      )}
+    </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.opcaoCard, { borderColor: colors.primary }]} onPress={importarXML}>
-            <Text style={styles.opcaoIcon}>📄</Text>
-            <View style={styles.opcaoInfo}>
-              <Text style={styles.opcaoTitle}>Importar XML (NF-e)</Text>
-              <Text style={styles.opcaoSub}>Carrega automaticamente fornecedor, itens, quantidades e preços</Text>
-            </View>
-            <Text style={styles.opcaoArrow}>→</Text>
-          </TouchableOpacity>
+    <TouchableOpacity 
+      style={[styles.opcaoCard, { borderColor: colors.accent }]}
+      onPress={iniciarManual}
+    >
+      <View style={[styles.opcaoIconCircle, { backgroundColor: colors.accent + '15' }]}>
+        <Ionicons name="create-outline" size={28} color={colors.accentDark} />
+      </View>
+      <View style={styles.opcaoInfo}>
+        <Text style={styles.opcaoTitle}>Entrada manual</Text>
+        <Text style={styles.opcaoSub}>
+          Adicione itens manualmente lendo código de barras ou digitando
+        </Text>
+      </View>
+      <Ionicons name="chevron-forward" size={22} color={colors.textMuted} />
+    </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.opcaoCard, { borderColor: colors.accent }]}
-            onPress={() => { setModo(MODOS.MANUAL); adicionarItemManual(); }}
+    <View style={styles.dica}>
+      <Ionicons name="bulb-outline" size={18} color={colors.info} style={{ marginRight: 8 }} />
+      <Text style={styles.dicaTxt}>
+        Com o XML, a conferência é automática — basta bater os itens físicos com os da nota
+      </Text>
+    </View>
+
+    {comprasPendentes.length > 0 ? (
+      <View style={{ marginTop: spacing.md, paddingBottom: 40 }}>
+        <Text style={styles.sectionTitle}>Notas aguardando conferência</Text>
+        {comprasPendentes.map((c) => (
+          <TouchableOpacity 
+            key={c.id} 
+            style={styles.pendingCard}
+            onPress={() => iniciarConferenciaExistente(c)}
           >
-            <Text style={styles.opcaoIcon}>✏️</Text>
-            <View style={styles.opcaoInfo}>
-              <Text style={styles.opcaoTitle}>Entrada manual</Text>
-              <Text style={styles.opcaoSub}>Adicione itens manualmente lendo código de barras ou digitando</Text>
+            <View style={[styles.pendingIconBox, { backgroundColor: c.status === 'CONFERIDA' ? colors.successLight : colors.warningLight }]}>
+              <Ionicons 
+                name={c.status === 'CONFERIDA' ? "checkmark-circle" : "time"} 
+                size={20} 
+                color={c.status === 'CONFERIDA' ? colors.success : colors.warning} 
+              />
             </View>
-            <Text style={styles.opcaoArrow}>→</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.pendingNota}>NF-e #{c.numero_nota}</Text>
+              <Text style={styles.pendingForn} numberOfLines={1}>{c.fornecedor_nome}</Text>
+              <Text style={styles.pendingData}>
+                {new Date(c.data_emissao).toLocaleDateString('pt-BR')} • {c.status}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </TouchableOpacity>
-
-          <View style={styles.dica}>
-            <Text style={styles.dicaTxt}>💡 Dica: Com o XML, a conferência é automática — basta bater os itens físicos com os da nota</Text>
-          </View>
-        </ScrollView>
+        ))}
+      </View>
+    ) : (
+      <View style={{ marginTop: spacing.xl, alignItems: 'center', opacity: 0.5 }}>
+        <Ionicons name="document-text-outline" size={40} color={colors.textMuted} />
+        <Text style={{ color: colors.textMuted, marginTop: 8 }}>Nenhuma nota pendente para conferir</Text>
+      </View>
+    )}
+  </ScrollView>
+)}
+      {/* TELA MANUAL */}
+      {modo === MODOS.MANUAL && (
+        <View style={styles.manualContainer}>
+          <MaterialCommunityIcons name="pencil-box-outline" size={56} color={colors.textMuted} />
+          <Text style={styles.manualTitle}>Entrada Manual</Text>
+          <Text style={styles.manualSub}>
+            Adicione itens manualmente ou escaneie códigos de barras
+          </Text>
+          
+          <TouchableOpacity style={styles.manualBtn} onPress={adicionarItemManual}>
+            <Ionicons name="add-circle-outline" size={24} color={colors.primary} />
+            <Text style={styles.manualBtnText}>Adicionar Primeiro Item</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.manualBtn} onPress={() => setScannerOpen(true)}>
+            <Ionicons name="qr-code-outline" size={24} color={colors.primary} />
+            <Text style={styles.manualBtnText}>Escanear Código de Barras</Text>
+          </TouchableOpacity>
+        </View>
       )}
 
       {/* TELA DE CONFERÊNCIA */}
       {modo === MODOS.CONFERINDO && (
         <>
-          {/* Barra de progresso */}
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: `${progresso * 100}%`, backgroundColor: divergencias > 0 ? colors.warning : colors.success }]} />
+            <View style={[
+              styles.progressFill, 
+              { 
+                width: `${progresso * 100}%`, 
+                backgroundColor: divergencias > 0 ? colors.warning : colors.success 
+              }
+            ]} />
           </View>
 
-          {/* Stats */}
           <View style={styles.statsRow}>
             <View style={[styles.statBox, { backgroundColor: colors.successLight }]}>
               <Text style={[styles.statNum, { color: colors.success }]}>{ok}</Text>
@@ -341,12 +656,18 @@ export default function ConferenciaScreen() {
               <Text style={[styles.statNum, { color: colors.info }]}>{pendentes}</Text>
               <Text style={styles.statLabel}>Pendente</Text>
             </View>
+            <TouchableOpacity 
+              style={[styles.statBox, { backgroundColor: '#f5f5f5' }]}
+              onPress={adicionarItemManual}
+            >
+              <Ionicons name="add" size={24} color={colors.primary} />
+              <Text style={styles.statLabel}>Adicionar</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* Barra de scan */}
           <View style={styles.scanBar}>
             <TouchableOpacity style={styles.cameraBtn} onPress={() => setScannerOpen(true)}>
-              <Text style={styles.cameraBtnTxt}>📷</Text>
+              <Ionicons name="qr-code-outline" size={24} color={colors.white} />
             </TouchableOpacity>
             <TextInput
               ref={barcodeRef}
@@ -362,11 +683,14 @@ export default function ConferenciaScreen() {
             />
           </View>
 
-          {/* Info nota */}
           <View style={styles.notaInfo}>
             <TouchableOpacity onPress={() => setFornecedorModal(true)} style={styles.fornBtn}>
-              <Text style={styles.fornLabel}>
-                {fornecedorSelecionado ? fornecedorSelecionado.razao_social?.substring(0, 24) + '...' : '+ Fornecedor'}
+              <Ionicons name="business-outline" size={16} color={colors.primary} style={{ marginRight: 6 }} />
+              <Text style={styles.fornLabel} numberOfLines={1}>
+                {fornecedorSelecionado 
+                  ? (fornecedorSelecionado.nome_fantasia || fornecedorSelecionado.razao_social || 'Fornecedor')
+                  : 'Fornecedor'
+                }
               </Text>
             </TouchableOpacity>
             <TextInput
@@ -379,7 +703,6 @@ export default function ConferenciaScreen() {
             />
           </View>
 
-          {/* Lista de itens */}
           <FlatList
             data={itensConferencia}
             keyExtractor={(_, i) => String(i)}
@@ -390,18 +713,30 @@ export default function ConferenciaScreen() {
                 index={index}
                 onConfirmar={(delta) => confirmarItemPorIndex(index, delta)}
                 onUpdateField={(field, val) => updateItemField(index, field, val)}
+                onRemover={() => removerItem(index)}
               />
             )}
+            ListEmptyComponent={
+              <EmptyState 
+                icon={<Ionicons name="clipboard-outline" size={48} color={colors.textMuted} />}
+                title="Nenhum item" 
+                subtitle="Adicione itens ou importe um XML" 
+              />
+            }
           />
 
-          {/* Footer */}
           <View style={[styles.footer, { paddingBottom: insets.bottom + 8 }]}>
-            <Button title="💾 Salvar conferência" onPress={salvar} loading={saving} />
+            <Button 
+              title={saving ? "Salvando..." : "Salvar conferência"} 
+              icon={<Ionicons name="save-outline" size={18} color={colors.white} />}
+              onPress={salvar} 
+              loading={saving}
+              disabled={saving || itensConferencia.length === 0}
+            />
           </View>
         </>
       )}
 
-      {/* Scanner */}
       <BarcodeScanner
         visible={scannerOpen}
         onScan={onBarcodeScanned}
@@ -416,7 +751,7 @@ export default function ConferenciaScreen() {
             <View style={styles.fModalHeader}>
               <Text style={styles.fModalTitle}>Selecionar Fornecedor</Text>
               <TouchableOpacity onPress={() => setFornecedorModal(false)}>
-                <Text style={{ fontSize: 22, color: colors.textSecondary }}>✕</Text>
+                <Ionicons name="close" size={24} color={colors.textSecondary} />
               </TouchableOpacity>
             </View>
             <View style={{ padding: spacing.md }}>
@@ -424,7 +759,7 @@ export default function ConferenciaScreen() {
                 placeholder="Buscar fornecedor..."
                 value={searchForn}
                 onChangeText={setSearchForn}
-                icon="🔍"
+                icon={<Ionicons name="search" size={18} color={colors.textMuted} />}
               />
             </View>
             <FlatList
@@ -433,13 +768,21 @@ export default function ConferenciaScreen() {
               renderItem={({ item: f }) => (
                 <TouchableOpacity
                   style={styles.fItem}
-                  onPress={() => { setFornecedorSelecionado(f); setFornecedorModal(false); }}
+                  onPress={() => { 
+                    setFornecedorSelecionado(f); 
+                    setFornecedorModal(false); 
+                  }}
                 >
                   <Text style={styles.fItemName}>{f.razao_social}</Text>
                   <Text style={styles.fItemCnpj}>{f.cnpj}</Text>
                 </TouchableOpacity>
               )}
-              ListEmptyComponent={<EmptyState icon="🏭" title="Nenhum fornecedor" />}
+              ListEmptyComponent={
+                <EmptyState 
+                  icon={<Ionicons name="business-outline" size={48} color={colors.textMuted} />}
+                  title="Nenhum fornecedor encontrado" 
+                />
+              }
             />
           </View>
         </View>
@@ -449,32 +792,46 @@ export default function ConferenciaScreen() {
       <Modal visible={resumoModal} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <Card style={styles.resumoCard}>
-            <Text style={styles.resumoTitle}>📊 Resumo da Conferência</Text>
+            <Text style={styles.resumoTitle}>Resumo da Conferência</Text>
+            
             <View style={styles.resumoStats}>
               <View style={styles.resumoStat}>
+                <Ionicons name="checkmark-circle" size={28} color={colors.success} />
                 <Text style={[styles.resumoStatNum, { color: colors.success }]}>{ok}</Text>
                 <Text style={styles.resumoStatLabel}>Itens OK</Text>
               </View>
               <View style={styles.resumoStat}>
+                <Ionicons name="warning" size={28} color={colors.warning} />
                 <Text style={[styles.resumoStatNum, { color: colors.warning }]}>{divergencias}</Text>
                 <Text style={styles.resumoStatLabel}>Divergências</Text>
               </View>
               <View style={styles.resumoStat}>
+                <Ionicons name="time-outline" size={28} color={colors.info} />
                 <Text style={[styles.resumoStatNum, { color: colors.info }]}>{pendentes}</Text>
                 <Text style={styles.resumoStatLabel}>Pendentes</Text>
               </View>
             </View>
+            
             {divergencias > 0 && (
               <View style={styles.divergenciasList}>
-                <Text style={styles.divergenciasTitle}>⚠️ Itens com divergência:</Text>
-                {itensConferencia.filter(i => i.status === 'DIVERGENCIA').map((item, i) => (
-                  <Text key={i} style={styles.divergenciaItem}>
-                    • {item.nome}: nota {item.qtdNota} / conferido {item.qtdConferida}
-                  </Text>
-                ))}
+                <Text style={styles.divergenciasTitle}>Itens com divergência:</Text>
+                {itensConferencia
+                  .filter(i => i.status === 'DIVERGENCIA')
+                  .map((item, i) => (
+                    <Text key={i} style={styles.divergenciaItem}>
+                      • {item.nome}: nota {item.qtdNota} / conferido {item.qtdConferida}
+                    </Text>
+                  ))
+                }
               </View>
             )}
-            <Button title="Fechar" onPress={() => setResumoModal(false)} variant="outline" style={{ marginTop: spacing.md }} />
+            
+            <Button 
+              title="Fechar" 
+              onPress={() => setResumoModal(false)} 
+              variant="outline" 
+              style={{ marginTop: spacing.md }} 
+            />
           </Card>
         </View>
       </Modal>
@@ -482,8 +839,8 @@ export default function ConferenciaScreen() {
   );
 }
 
-// ── ConferenciaItem ──────────────────────────────────────
-function ConferenciaItem({ item, index, onConfirmar, onUpdateField }) {
+// ── ConferenciaItem ───────────────────────────────────────
+function ConferenciaItem({ item, index, onConfirmar, onUpdateField, onRemover }) {
   const [expanded, setExpanded] = useState(false);
   const [editNome, setEditNome] = useState(item.nome);
   const [editQtdNota, setEditQtdNota] = useState(String(item.qtdNota));
@@ -496,34 +853,64 @@ function ConferenciaItem({ item, index, onConfirmar, onUpdateField }) {
     PENDENTE: colors.textMuted,
   }[item.status] || colors.textMuted;
 
-  const statusIcon = { OK: '✅', DIVERGENCIA: '⚠️', PENDENTE: '⏳' }[item.status] || '⏳';
+  const statusIconName = { 
+    OK: 'checkmark-circle', 
+    DIVERGENCIA: 'warning', 
+    PENDENTE: 'time-outline' 
+  }[item.status] || 'help-circle-outline';
+
+  const statusBg = {
+    OK: colors.successLight,
+    DIVERGENCIA: colors.warningLight,
+    PENDENTE: '#f9f9f9',
+  }[item.status] || '#f9f9f9';
 
   return (
-    <View style={ci2.card}>
-      <TouchableOpacity style={ci2.row} onPress={() => setExpanded(!expanded)} activeOpacity={0.85}>
-        {/* Status */}
-        <Text style={ci2.statusIcon}>{statusIcon}</Text>
-        {/* Info */}
+    <View style={[ci2.card, { borderLeftWidth: 4, borderLeftColor: statusColor }]}>
+      <TouchableOpacity 
+        style={ci2.row} 
+        onPress={() => setExpanded(!expanded)} 
+        activeOpacity={0.85}
+        onLongPress={onRemover}
+      >
+        <Ionicons name={statusIconName} size={22} color={statusColor} style={{ marginRight: spacing.xs }} />
+        
         <View style={{ flex: 1, marginHorizontal: spacing.xs }}>
-          <Text style={ci2.nome} numberOfLines={1}>{item.nome || 'Item ' + (index + 1)}</Text>
+          <Text style={ci2.nome} numberOfLines={1}>
+            {item.nome || 'Item ' + (index + 1)}
+          </Text>
           <Text style={ci2.ref}>
-            {item.cProd || item.cEAN ? `${item.cProd} / ${item.cEAN}` : 'Sem referência'}
+            {item.cProd || item.cEAN 
+              ? `Ref: ${item.cProd || item.cEAN}` 
+              : 'Sem referência'
+            }
           </Text>
         </View>
-        {/* Qtd */}
+        
         <View style={ci2.qtdArea}>
           <TouchableOpacity style={ci2.qtdBtn} onPress={() => onConfirmar(-1)}>
-            <Text style={ci2.qtdBtnTxt}>−</Text>
+            <Ionicons name="remove" size={16} color={colors.white} />
           </TouchableOpacity>
-          <View style={[ci2.qtdBadge, { borderColor: statusColor }]}>
-            <Text style={[ci2.qtdValue, { color: statusColor }]}>{item.qtdConferida}</Text>
+          <View style={[ci2.qtdBadge, { borderColor: statusColor, backgroundColor: statusBg }]}>
+            <Text style={[ci2.qtdValue, { color: statusColor }]}>
+              {item.qtdConferida}
+            </Text>
             <Text style={ci2.qtdNota}>/{item.qtdNota}</Text>
           </View>
-          <TouchableOpacity style={[ci2.qtdBtn, { backgroundColor: colors.success }]} onPress={() => onConfirmar(1)}>
-            <Text style={ci2.qtdBtnTxt}>+</Text>
+          <TouchableOpacity 
+            style={[ci2.qtdBtn, { backgroundColor: colors.success }]} 
+            onPress={() => onConfirmar(1)}
+          >
+            <Ionicons name="add" size={16} color={colors.white} />
           </TouchableOpacity>
         </View>
-        <Text style={{ color: colors.textMuted, fontSize: 12, marginLeft: 4 }}>{expanded ? '▲' : '▼'}</Text>
+        
+        <Ionicons 
+          name={expanded ? 'chevron-up' : 'chevron-down'} 
+          size={16} 
+          color={colors.textMuted} 
+          style={{ marginLeft: 4 }}
+        />
       </TouchableOpacity>
 
       {expanded && (
@@ -552,8 +939,10 @@ function ConferenciaItem({ item, index, onConfirmar, onUpdateField }) {
             <TextInput
               style={ci2.expandInput}
               value={editQtdConf}
-              onChangeText={setEditQtdConf}
-              onBlur={() => onUpdateField('qtdConferida', editQtdConf)}
+              onChangeText={(val) => {
+                setEditQtdConf(val);
+                onUpdateField('qtdConferida', val);
+              }}
               keyboardType="decimal-pad"
             />
           </View>
@@ -567,21 +956,41 @@ function ConferenciaItem({ item, index, onConfirmar, onUpdateField }) {
               keyboardType="decimal-pad"
             />
           </View>
-          <Text style={ci2.ncm}>NCM: {item.ncm || '—'} · Unid: {item.unidade}</Text>
+          <View style={ci2.expandRow}>
+            <Text style={ci2.expandLabel}>Código:</Text>
+            <TextInput
+              style={[ci2.expandInput, { color: colors.textMuted }]}
+              value={item.cProd || item.cEAN || ''}
+              editable={false}
+            />
+          </View>
+          {item.ncm ? (
+            <Text style={ci2.ncm}>
+              NCM: {item.ncm} · Unid: {item.unidade}
+            </Text>
+          ) : null}
+          
+          <TouchableOpacity style={ci2.removeBtn} onPress={onRemover}>
+            <Ionicons name="trash-outline" size={14} color="#c62828" />
+            <Text style={ci2.removeBtnText}>Remover item</Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────
 const ci2 = StyleSheet.create({
   card: {
     backgroundColor: colors.white,
-    marginHorizontal: spacing.md, marginBottom: spacing.xs,
-    borderRadius: radius.md, ...shadow.sm, overflow: 'hidden',
+    marginHorizontal: spacing.md, 
+    marginBottom: spacing.xs,
+    borderRadius: radius.md, 
+    ...shadow.sm, 
+    overflow: 'hidden',
   },
   row: { flexDirection: 'row', alignItems: 'center', padding: spacing.sm },
-  statusIcon: { fontSize: 22, marginRight: spacing.xs },
   nome: { fontSize: fontSize.sm, fontWeight: '600', color: colors.text },
   ref: { fontSize: fontSize.xs, color: colors.textSecondary },
   qtdArea: { flexDirection: 'row', alignItems: 'center' },
@@ -590,7 +999,6 @@ const ci2 = StyleSheet.create({
     backgroundColor: colors.primary,
     alignItems: 'center', justifyContent: 'center',
   },
-  qtdBtnTxt: { color: colors.white, fontSize: 16, fontWeight: '700' },
   qtdBadge: {
     flexDirection: 'row', alignItems: 'baseline',
     marginHorizontal: 6, paddingHorizontal: 8, paddingVertical: 4,
@@ -611,6 +1019,13 @@ const ci2 = StyleSheet.create({
     paddingVertical: 4, paddingHorizontal: 6,
   },
   ncm: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 4 },
+  removeBtn: {
+    marginTop: spacing.sm, paddingVertical: spacing.xs,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
+    backgroundColor: '#fff5f5', borderRadius: radius.sm,
+    borderWidth: 1, borderColor: '#ffcdd2',
+  },
+  removeBtnText: { color: '#c62828', fontSize: fontSize.xs, fontWeight: '600' },
 });
 
 const styles = StyleSheet.create({
@@ -626,7 +1041,6 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     marginRight: spacing.sm,
   },
-  backTxt: { color: colors.white, fontSize: 20, fontWeight: '700' },
   headerTitle: { fontSize: fontSize.xl, fontWeight: '800', color: colors.white },
   headerSub: { fontSize: fontSize.xs, color: 'rgba(255,255,255,0.7)' },
   resumoBtn: {
@@ -634,24 +1048,60 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
     alignItems: 'center', justifyContent: 'center',
   },
-  resumoTxt: { fontSize: 22 },
-  inicioScroll: { padding: spacing.lg, gap: spacing.md },
+  
+  inicioScroll: { flexGrow: 1, padding: spacing.lg, gap: spacing.md, paddingBottom: 100 },
+  sectionTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+  pendingCard: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.white, borderRadius: radius.md,
+    padding: spacing.md, marginBottom: spacing.xs,
+    ...shadow.sm,
+  },
+  pendingIconBox: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: colors.warningLight,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: spacing.sm,
+  },
+  pendingNota: { fontSize: fontSize.md, fontWeight: '800', color: colors.text },
+  pendingForn: { fontSize: fontSize.sm, color: colors.textSecondary },
+  pendingData: { fontSize: fontSize.xs, color: colors.textMuted, marginTop: 2 },
+
   inicioTitle: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.text, marginBottom: spacing.sm },
   opcaoCard: {
     flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.white, borderRadius: radius.lg,
     padding: spacing.md, borderWidth: 2, ...shadow.sm,
   },
-  opcaoIcon: { fontSize: 36, marginRight: spacing.md },
+  opcaoIconCircle: {
+    width: 52, height: 52, borderRadius: 26,
+    alignItems: 'center', justifyContent: 'center',
+    marginRight: spacing.md,
+  },
   opcaoInfo: { flex: 1 },
   opcaoTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text },
   opcaoSub: { fontSize: fontSize.xs, color: colors.textSecondary, marginTop: 2 },
-  opcaoArrow: { fontSize: 20, color: colors.textMuted, marginLeft: spacing.sm },
   dica: {
+    flexDirection: 'row', alignItems: 'center',
     backgroundColor: colors.infoLight, borderRadius: radius.md,
     padding: spacing.md, marginTop: spacing.sm,
   },
-  dicaTxt: { fontSize: fontSize.sm, color: colors.info },
+  dicaTxt: { fontSize: fontSize.sm, color: colors.info, flex: 1 },
+  
+  manualContainer: {
+    flex: 1, padding: spacing.lg,
+    alignItems: 'center', justifyContent: 'center', gap: spacing.md,
+  },
+  manualTitle: { fontSize: fontSize.xxl, fontWeight: '800', color: colors.text },
+  manualSub: { fontSize: fontSize.sm, color: colors.textSecondary, textAlign: 'center', marginBottom: spacing.lg },
+  manualBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.white, borderRadius: radius.lg,
+    padding: spacing.md, width: '100%',
+    ...shadow.sm, gap: spacing.md,
+  },
+  manualBtnText: { fontSize: fontSize.md, fontWeight: '600', color: colors.text },
+  
   progressBar: { height: 4, backgroundColor: colors.border },
   progressFill: { height: 4, borderRadius: 2 },
   statsRow: {
@@ -672,7 +1122,6 @@ const styles = StyleSheet.create({
     width: 48, height: 48, alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.primary, borderRadius: radius.md,
   },
-  cameraBtnTxt: { fontSize: 22 },
   barcodeInput: {
     flex: 1, height: 48, paddingHorizontal: spacing.sm,
     fontSize: fontSize.md, color: colors.text,
@@ -682,18 +1131,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md, marginBottom: spacing.xs,
   },
   fornBtn: {
-    flex: 2, backgroundColor: colors.white, borderRadius: radius.md,
-    paddingHorizontal: spacing.sm, height: 40, justifyContent: 'center', ...shadow.sm,
+    flex: 2, flexDirection: 'row', alignItems: 'center',
+    backgroundColor: colors.white, borderRadius: radius.md,
+    paddingHorizontal: spacing.sm, height: 40, ...shadow.sm,
   },
-  fornLabel: { fontSize: fontSize.xs, color: colors.primary, fontWeight: '600' },
+  fornLabel: { fontSize: fontSize.xs, color: colors.primary, fontWeight: '600', flex: 1 },
   notaInput: {
     flex: 1, backgroundColor: colors.white, borderRadius: radius.md,
-    paddingHorizontal: spacing.sm, height: 40, fontSize: fontSize.sm, color: colors.text, ...shadow.sm,
+    paddingHorizontal: spacing.sm, height: 40, fontSize: fontSize.sm, 
+    color: colors.text, ...shadow.sm,
   },
   footer: {
     backgroundColor: colors.white, borderTopWidth: 1, borderColor: colors.border,
     padding: spacing.md,
   },
+  
   modalOverlay: {
     flex: 1, backgroundColor: 'rgba(0,0,0,0.5)',
     alignItems: 'center', justifyContent: 'center', padding: spacing.md,
@@ -715,12 +1167,14 @@ const styles = StyleSheet.create({
   resumoCard: { width: '100%', maxWidth: 380 },
   resumoTitle: { fontSize: fontSize.lg, fontWeight: '800', color: colors.text, marginBottom: spacing.md },
   resumoStats: { flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md },
-  resumoStat: { flex: 1, alignItems: 'center' },
+  resumoStat: { flex: 1, alignItems: 'center', gap: 4 },
   resumoStatNum: { fontSize: fontSize.xxxl, fontWeight: '800' },
   resumoStatLabel: { fontSize: fontSize.xs, color: colors.textSecondary },
   divergenciasList: {
     backgroundColor: colors.warningLight, borderRadius: radius.md, padding: spacing.sm,
   },
-  divergenciasTitle: { fontSize: fontSize.sm, fontWeight: '700', color: colors.warning, marginBottom: spacing.xs },
+  divergenciasTitle: { 
+    fontSize: fontSize.sm, fontWeight: '700', color: colors.warning, marginBottom: spacing.xs 
+  },
   divergenciaItem: { fontSize: fontSize.xs, color: colors.text, marginBottom: 2 },
 });

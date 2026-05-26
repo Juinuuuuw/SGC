@@ -1,0 +1,234 @@
+/* --- LAYOUT DA PÁGINA DO PDV --- */
+#pdv-online.section.active {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 20px;
+    width: 100%;
+    height: 100%;
+    padding: 20px;
+}
+
+/* Painel Principal (à direita) */
+.pdv-main-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 0;
+}
+
+/* Seção Superior (inputs) */
+.pdv-main-top-section {
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+    border-top: 4px solid var(--cor-destaque);
+    border-left: 1px solid var(--cor-borda-cinza);
+    border-right: 1px solid var(--cor-borda-cinza);
+    border-radius: 8px 8px 0 0;
+    background-color: #fff;
+}
+.product-input-box {
+    background-color: #fff;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 15px;
+    display: grid;
+    grid-template-columns: 1fr 120px;
+    gap: 15px;
+    flex-grow: 1;
+}
+.product-input-box label {
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 5px;
+    display: block;
+    color: #555;
+}
+.product-input-box input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 15px;
+}
+.product-input-box input:focus {
+    border-color: var(--cor-destaque);
+    box-shadow: 0 0 0 2px rgba(255, 183, 0, 0.2);
+    outline: none;
+}
+
+/* Lista de Itens */
+.pdv-items-list {
+    flex-grow: 1;
+    background-color: #fff;
+    border: 1px solid var(--cor-borda-cinza);
+    border-top: none;
+    border-radius: 0;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+.pdv-items-list table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.pdv-items-list thead {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+}
+.pdv-items-list th {
+    padding: 12px 15px;
+    text-align: left;
+    font-size: 13px;
+    text-transform: uppercase;
+    color: #666;
+    border-bottom: 2px solid #ddd;
+}
+.pdv-items-list td {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+.pdv-items-list .empty-cart-message td {
+    text-align: center;
+    padding: 50px 0;
+    color: #999;
+    font-size: 18px;
+}
+.pdv-items-list th:nth-child(1), .pdv-items-list td:nth-child(1) { width: 60px; text-align: center; } /* Item */
+.pdv-items-list th:nth-child(2) { flex-grow: 1; } /* Descrição */
+.pdv-items-list th:nth-child(3), .pdv-items-list td:nth-child(3) { width: 80px; text-align: center; } /* Qtd */
+.pdv-items-list th:nth-child(4), .pdv-items-list td:nth-child(4) { width: 120px; text-align: right; } /* Vl. Unit */
+.pdv-items-list th:nth-child(5), .pdv-items-list td:nth-child(5) { width: 120px; text-align: right; font-weight: bold; } /* Vl. Total */
+
+/* Seção Inferior (cliente e total) */
+.pdv-main-bottom-section {
+    flex-shrink: 0;
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+    border: 1px solid var(--cor-borda-cinza);
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.client-info {
+    background-color: #fff;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 15px;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.client-info label {
+    font-size: 12px;
+    text-transform: uppercase;
+    color: #666;
+    display: block;
+    margin-bottom: 2px;
+}
+.client-info span {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+}
+.total-display {
+    background-color: var(--cor-destaque);
+    padding: 10px 20px;
+    border-radius: 4px;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 220px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.total-display label {
+    font-size: 14px;
+    font-weight: 600;
+    display: block;
+    color: #333;
+    margin-bottom: 2px;
+}
+.total-display span {
+    font-size: 32px;
+    font-weight: bold;
+    color: #000;
+    display: block;
+    line-height: 1;
+}
+
+/* Painel de Informações (à esquerda) */
+.pdv-info-panel {
+    display: flex;
+    flex-direction: column;
+    border-top: 4px solid var(--cor-destaque);
+    border-left: 1px solid var(--cor-borda-cinza);
+    border-right: 1px solid var(--cor-borda-cinza);
+    border-bottom: 1px solid var(--cor-borda-cinza);
+    border-radius: 8px;
+    background-color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    flex-shrink: 0;
+}
+.info-box {
+    padding: 15px;
+}
+.operator-box {
+    background-color: var(--cor-destaque);
+    border-radius: 4px 4px 0 0;
+    font-weight: 600;
+    color: #333;
+}
+.operator-box label {
+    font-size: 12px;
+    display: block;
+    text-transform: uppercase;
+}
+.operator-box span {
+    font-size: 16px;
+}
+.logo-box {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+.logo-box img {
+    max-width: 100%;
+    max-height: 150px;
+    opacity: 0.8;
+}
+
+.input-hint {
+    display: block;
+    font-size: 0.8em;
+    color: #666;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* Estilo base do campo de quantidade */
+#pdv-quantity-input {
+    transition: all 0.5s ease-in-out;
+    background-color: white;
+    border: 2px solid #ddd;
+}
+
+/* Estilo para quando a quantidade é alterada automaticamente - ROXA COM TRANSITION */
+.quantity-updated {
+    background-color: #f3e5f5 !important;
+    border-color: #8e24aa !important;
+    box-shadow: 0 0 0 2px rgba(142, 36, 170, 0.2) !important;
+    transform: scale(1.02);
+}

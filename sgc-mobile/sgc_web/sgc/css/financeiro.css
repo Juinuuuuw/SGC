@@ -1,0 +1,37 @@
+/* --- ESTILOS DO MÓDULO FINANCEIRO --- */
+.finance-nav {
+  display: flex;
+  gap: 5px;
+  border-bottom: 1px solid var(--cor-borda-cinza);
+  margin-bottom: 20px;
+}
+.finance-tab-btn {
+  padding: 10px 20px;
+  cursor: pointer;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 15px;
+  font-weight: 500;
+  color: #555;
+}
+.finance-tab-btn.active {
+  color: var(--cor-texto-principal);
+  border-bottom-color: var(--cor-destaque);
+}
+.finance-tab-pane {
+  display: none;
+}
+.finance-tab-pane.active {
+  display: block;
+}
+
+/* Coloração para valores de receita e despesa */
+#transactionsTableBody .valor-receita {
+  color: #27ae60;
+  font-weight: bold;
+}
+#transactionsTableBody .valor-despesa {
+  color: #e74c3c;
+  font-weight: bold;
+}

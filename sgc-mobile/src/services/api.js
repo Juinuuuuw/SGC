@@ -41,10 +41,10 @@ export const logout = async () => {
 export const getEmpresa = async () => {
   const api = await createApiInstance();
   const res = await api.get('/empresa.php');
-  return res.data; // { success, empresa: { segmento, razao_social, ... } }
+  return res.data; 
 };
 
-// ── PRODUTOS ──────────────────────────────────────────────
+// ── PRODUTOS E GRUPOS ─────────────────────────────────────
 export const getProdutos = async (search = '') => {
   const api = await createApiInstance();
   const res = await api.get(`/produtos.php${search ? `?search=${encodeURIComponent(search)}` : ''}`);
@@ -54,6 +54,12 @@ export const getProdutos = async (search = '') => {
 export const getProdutoByBarcode = async (barcode) => {
   const api = await createApiInstance();
   const res = await api.get(`/produtos.php?barcode=${encodeURIComponent(barcode)}`);
+  return res.data;
+};
+
+export const getGrupos = async () => {
+  const api = await createApiInstance();
+  const res = await api.get('/grupos.php');
   return res.data;
 };
 
@@ -70,12 +76,15 @@ export const abrirCaixa = async (saldoInicial) => {
   return res.data;
 };
 
-export const fecharCaixa = async (idCaixa, saldoFechamento) => {
+export const fecharCaixa = async (idCaixa, saldoFechamento, sangria, valorRestante, observacoes = '') => {
   const api = await createApiInstance();
   const res = await api.post('/caixa.php', {
     acao: 'FECHAR',
     id_caixa: idCaixa,
     saldo_fechamento: saldoFechamento,
+    sangria: sangria,
+    valor_restante: valorRestante,
+    observacoes: observacoes,
   });
   return res.data;
 };
@@ -104,30 +113,33 @@ export const getFornecedores  = async ()       => (await (await createApiInstanc
 export const salvarConferencia= async (dados)  => (await (await createApiInstance()).post('/compras.php', dados)).data;
 
 // ── MESAS (segmento Restaurante) ──────────────────────────
-/**
- * Lista todas as mesas com status atual, tempo aberto e total em conta.
- */
 export const getMesas = async () => {
   const api = await createApiInstance();
   const res = await api.get('/mesas.php');
-  return res.data; // array de mesas
+  return res.data; 
 };
 
-/**
- * Venda em aberto de uma mesa, com todos os itens.
- */
 export const getMesaPedido = async (idMesa) => {
   const api = await createApiInstance();
   const res = await api.get(`/mesas_pdv.php?id_mesa=${idMesa}`);
-  return res.data; // { success, venda: { id, itens[], total } | null }
+  return res.data; 
 };
 
-/**
- * Ações do PDV de mesas.
- * payload.acao: 'ABRIR' | 'ADD_ITEM' | 'REMOVER_ITEM' | 'PEDIR_CONTA' | 'FECHAR'
- */
 export const mesaPdvAction = async (payload) => {
   const api = await createApiInstance();
   const res = await api.post('/mesas_pdv.php', payload);
+  return res.data;
+};
+
+// ── CLIENTES ──────────────────────────────────────────────
+export const getClientes = async (search = '') => {
+  const api = await createApiInstance();
+  const res = await api.get(`/clientes.php${search ? `?search=${encodeURIComponent(search)}` : ''}`);
+  return res.data;
+};
+
+export const salvarCliente = async (cliente) => {
+  const api = await createApiInstance();
+  const res = await api.post('/clientes.php', cliente);
   return res.data;
 };

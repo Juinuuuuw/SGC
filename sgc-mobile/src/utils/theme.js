@@ -1,10 +1,18 @@
 // src/utils/theme.js
+// Tema do SGC Mobile — alinhado ao sistema web
+
 export const colors = {
-  primary: '#1a237e',       // Azul escuro SGC
-  primaryLight: '#3949ab',
-  primaryDark: '#0d1456',
-  accent: '#ff6f00',        // Laranja para destaques
-  accentLight: '#ffa040',
+  // ═══ COR PRINCIPAL (Roxo SGC) ═══
+  primary: '#3e1c67',        // Roxo escuro SGC (cor principal)
+  primaryLight: '#5a249c',   // Roxo médio (hover)
+  primaryDark: '#2d1448',    // Roxo mais escuro
+  
+  // ═══ DESTAQUE (Amarelo SGC) ═══
+  accent: '#ffb700',         // Amarelo SGC (cor-destaque)
+  accentLight: '#ffd54f',    // Amarelo claro
+  accentDark: '#ff8f00',     // Âmbar
+  
+  // ═══ FUNCIONAIS ═══
   success: '#2e7d32',
   successLight: '#e8f5e9',
   danger: '#c62828',
@@ -13,14 +21,33 @@ export const colors = {
   warningLight: '#fff8e1',
   info: '#0277bd',
   infoLight: '#e1f5fe',
+  
+  // ═══ SUPERFÍCIES ═══
   white: '#ffffff',
-  background: '#f4f6fb',
+  background: '#f4f6f8',     // cor-fundo-conteudo
   card: '#ffffff',
-  border: '#e0e0e0',
-  text: '#1a1a2e',
+  surface: '#fafafa',
+  
+  // ═══ SIDEBAR ═══
+  sidebarBg: '#1e1e1e',      // cor-fundo-sidebar
+  sidebarText: '#cccccc',    // cor-texto-sidebar
+  sidebarBorder: '#333333',  // cor-borda
+  
+  // ═══ BORDAS ═══
+  border: '#e9ecef',         // cor-borda-cinza
+  borderLight: '#f0f0f0',
+  
+  // ═══ TEXTO ═══
+  text: '#333333',           // cor-texto-principal
   textSecondary: '#6b7280',
   textMuted: '#9ca3af',
-  surface: '#fafafa',
+  textLight: '#ffffff',
+  
+  // ═══ BOTÕES ═══
+  buttonPrimary: '#1e99ee',  // Azul (Editar)
+  buttonPrimaryHover: '#1a87d6',
+  buttonDanger: '#e74c3c',   // Vermelho (Excluir)
+  buttonDangerHover: '#c0392b',
 };
 
 export const spacing = {
@@ -33,10 +60,10 @@ export const spacing = {
 };
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
+  sm: 6,
+  md: 8,
+  lg: 12,
+  xl: 16,
   full: 9999,
 };
 
