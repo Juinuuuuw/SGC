@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SGC</title>
+    <link rel="stylesheet" href="login-style.css">
+    <link rel="icon" href="sgc_icon.png" type="image/png">
+</head>
+<body>
+    <div class="login-container">
+        <div class="image-column">
+            <div class="image-content">
+                <img src="sgc_notebook.png" alt="Logo SGC">
+                <p><strong>A gestão do seu negócio, simplificada.</strong></p>
+            </div>
+        </div>
+
+        <div class="form-column">
+            <div class="login-box">
+                <div class="login-logo">
+                    <a href="landing.html" title="Voltar para a página inicial">
+                        <img src="sgc_icon.png" alt="SGC Logo">
+                    </a>
+                    <h2>Acesse sua conta</h2>
+                </div>
+
+                <div id="message-display" style="color: #721c24; background-color: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; border-radius: 5px; margin-bottom: 20px; display: none; font-size: 14px;">
+                </div>
+
+                <form action="api/login.php" method="POST">
+                    <div class="input-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email" placeholder="seuemail@exemplo.com" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" name="senha" placeholder="Sua senha" required>
+                    </div>
+
+                    <div class="form-options">
+                        <div class="remember-me">
+                            <input type="checkbox" id="remember">
+                            <label for="remember">Lembrar de mim</label>
+                        </div>
+                        <a href="#" class="forgot-password">Esqueci minha senha</a>
+                    </div>
+
+                    <button type="submit" class="btn">Entrar</button>
+                </form>
+
+                <div class="signup-link">
+                    <p>Não tem uma conta? <a href="#">Cadastre-se</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const erro = urlParams.get('erro');
+            const sucesso = urlParams.get('sucesso');
+            const messageDiv = document.getElementById('message-display');
+
+            if (erro) {
+                messageDiv.textContent = erro;
+                messageDiv.style.display = 'block';
+            } else if (sucesso) {
+                messageDiv.textContent = sucesso;
+                // Estilo para mensagem de sucesso (verde)
+                messageDiv.style.backgroundColor = '#d4edda';
+                messageDiv.style.color = '#155724';
+                messageDiv.style.borderColor = '#c3e6cb';
+                messageDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

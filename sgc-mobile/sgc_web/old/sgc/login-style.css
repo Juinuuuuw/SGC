@@ -1,0 +1,192 @@
+/* --- CONFIGURAÇÕES GLOBAIS E VARIÁVEIS DE COR --- */
+:root {
+  --cor-destaque: #ffb700;
+  --cor-fundo-escuro: #3e1c67; /* Roxo do logo */
+  --cor-fundo-escuro-hover: #5a249c;
+  --cor-texto-principal: #333;
+  --cor-fundo-claro: #f4f6f8;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: var(--cor-texto-principal);
+}
+
+/* --- ESTRUTURA PRINCIPAL (DUAS COLUNAS) --- */
+.login-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.login-container > p {
+  font-weight: bold;
+}
+
+.image-column {
+  flex: 1;
+  background: 
+    linear-gradient(135deg, #3a1360 60%, rgba(0,0,0,0) 60%),
+    linear-gradient(45deg, #2f1351 50%, var(--cor-fundo-escuro) 50%); /* Use um tom ligeiramente diferente para o efeito */
+  background-size: 100% 100%;
+  background-position: 0 0;
+  
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  position: relative; /* Adicionado para posicionamento futuro, se necessário */
+  overflow: hidden; /* Garante que o gradiente não vaze */
+}
+
+.image-content {
+  text-align: center;
+  color: #ffffff;
+}
+
+.image-content img {
+  max-width: 400px;
+  margin-bottom: 20px;
+}
+
+.image-content p {
+  font-size: 1.2rem;
+  font-weight: 300;
+  opacity: 0.9;
+}
+
+.form-column {
+  flex: 1;
+  background-color: var(--cor-fundo-claro);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+}
+
+/* --- ESTILOS DA CAIXA DE LOGIN --- */
+.login-box {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  padding: 40px 30px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.login-logo {
+  margin-bottom: 25px;
+}
+
+.login-logo img {
+  width: 90px;
+  height: auto;
+  margin-bottom: 10px;
+}
+
+.login-logo h2 {
+  font-size: 24px;
+  color: var(--cor-fundo-escuro);
+}
+
+/* --- ESTILOS DOS INPUTS E FORMULÁRIO (sem alterações) --- */
+.input-group {
+  margin-bottom: 20px;
+  text-align: left;
+}
+.input-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #555;
+}
+.input-group input {
+  width: 100%;
+  padding: 12px;
+  font-size: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-group input:focus {
+  outline: none;
+  border-color: var(--cor-destaque);
+  box-shadow: 0 0 0 3px rgba(255, 183, 0, 0.2);
+}
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  font-size: 14px;
+}
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.remember-me label {
+  cursor: pointer;
+  color: #555;
+}
+.forgot-password {
+  color: var(--cor-fundo-escuro);
+  text-decoration: none;
+  font-weight: 500;
+}
+.forgot-password:hover {
+  text-decoration: underline;
+}
+.btn {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffffff;
+  background-color: var(--cor-fundo-escuro);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+.btn:hover {
+  background-color: var(--cor-fundo-escuro-hover);
+}
+.signup-link {
+  margin-top: 25px;
+  font-size: 15px;
+  color: #555;
+}
+.signup-link a {
+  color: var(--cor-fundo-escuro);
+  font-weight: bold;
+  text-decoration: none;
+}
+.signup-link a:hover {
+  text-decoration: underline;
+}
+
+/* --- RESPONSIVIDADE (PARA CELULARES) --- */
+@media (max-width: 800px) {
+  .image-column {
+    display: none; /* Esconde a coluna da imagem em telas menores */
+  }
+
+  .form-column {
+    flex: 1; /* Faz a coluna do formulário ocupar 100% da largura */
+  }
+
+  .login-box {
+    box-shadow: none; /* Remove a sombra, pois não há fundo */
+    padding: 20px 15px;
+  }
+}

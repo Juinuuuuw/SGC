@@ -1,0 +1,570 @@
+/* ============================================================
+   SGC — mobile.css
+   Estilos responsivos para telas menores que 900px.
+   Adicione este arquivo DEPOIS de todos os outros CSS no <head>.
+   ============================================================ */
+
+/* -------------------------------------------------------
+   VARIÁVEIS E BASE
+------------------------------------------------------- */
+:root {
+  --mobile-header-height: 56px;
+  --mobile-sidebar-width: 280px;
+}
+
+/* -------------------------------------------------------
+   OVERLAY DO MENU LATERAL
+------------------------------------------------------- */
+#sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 199;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+/* -------------------------------------------------------
+   LAYOUT GERAL (≤ 900px)
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  /* --- Dashboard wrapper -------------------------------- */
+  .dashboard {
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* --- Sidebar: drawer deslizante ---------------------- */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: var(--mobile-sidebar-width) !important;
+    max-width: 85vw;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.25);
+  }
+
+  /* Cancelar o modo "minimizado" (não faz sentido em mobile) */
+  .sidebar.sidebar-minimized {
+    transform: translateX(-100%);
+    width: var(--mobile-sidebar-width) !important;
+  }
+  .sidebar.sidebar-minimized .menu-text,
+  .sidebar.sidebar-minimized .logo-banner-image {
+    display: block !important;
+    opacity: 1 !important;
+  }
+
+  /* Sidebar aberta via JS */
+  .sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* Overlay visível quando sidebar aberta */
+  .sidebar.mobile-open ~ #sidebar-overlay,
+  #sidebar-overlay.visible {
+    display: block;
+  }
+
+  /* --- Main content: ocupa tudo ----------------------- */
+  .main-content {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* --- Top bar ----------------------------------------- */
+  .top-bar {
+    height: var(--mobile-header-height);
+    padding: 0 12px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .top-bar-left {
+    gap: 10px;
+  }
+
+  /* Breadcrumbs: truncar em mobile */
+  #breadcrumb-nav {
+    font-size: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 180px;
+  }
+
+  /* Nome do usuário: esconder em telas muito pequenas */
+  #userProfileName {
+    display: none;
+  }
+
+  /* --- Área de conteúdo -------------------------------- */
+  .content-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 16px !important;
+  }
+
+  /* Títulos de seção */
+  .section h1 {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
+  .section h2 {
+    font-size: 17px;
+    margin-top: 20px !important;
+    margin-bottom: 12px;
+  }
+}
+
+/* -------------------------------------------------------
+   TABELAS — scroll horizontal em mobile
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  /* Wrapper automático para todas as tabelas */
+  table.product-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    font-size: 13px;
+    width: 100%;
+  }
+
+  table.product-table thead,
+  table.product-table tbody,
+  table.product-table tr {
+    display: table;
+    width: 100%;
+    table-layout: auto;
+  }
+
+  table.product-table th,
+  table.product-table td {
+    padding: 8px 10px;
+  }
+
+  /* Botões de ação dentro das tabelas */
+  table.product-table button {
+    padding: 5px 10px;
+    font-size: 12px;
+    margin: 2px;
+  }
+}
+
+/* -------------------------------------------------------
+   FORMULÁRIOS — coluna única
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .product-form {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    grid-template-columns: unset !important;
+  }
+
+  .product-form input,
+  .product-form select,
+  .product-form textarea {
+    width: 100% !important;
+    font-size: 16px; /* evita zoom automático no iOS */
+    padding: 12px 10px;
+  }
+
+  .product-form .full-width {
+    grid-column: unset;
+  }
+
+  .form-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .form-buttons button {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  /* Fieldset de adição de itens (movimentação) */
+  .item-adder-controls {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .item-adder-controls .form-group,
+  .item-adder-controls button {
+    width: 100%;
+  }
+}
+
+/* -------------------------------------------------------
+   ABAS DE PRODUTOS E FINANCEIRO
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  /* Abas com scroll horizontal */
+  .product-nav,
+  .finance-tabs,
+  .reports-tabs {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+    gap: 4px !important;
+    padding-bottom: 4px;
+    scrollbar-width: none; /* Firefox */
+  }
+
+  .product-nav::-webkit-scrollbar,
+  .finance-tabs::-webkit-scrollbar,
+  .reports-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .product-tab-btn,
+  .finance-tab-btn,
+  .reports-tab-btn {
+    flex-shrink: 0;
+    padding: 8px 14px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* -------------------------------------------------------
+   PDV ONLINE — layout adaptado para toque
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  /* Painel superior com operador e logo */
+  .pdv-info-panel {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding: 10px !important;
+  }
+
+  .pdv-info-panel .logo-box img {
+    max-height: 32px;
+  }
+
+  /* Painel principal */
+  .pdv-main-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* Inputs de busca e quantidade: empilhados */
+  .product-input-box {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .product-input-box .form-group {
+    width: 100%;
+  }
+
+  .product-input-box input {
+    font-size: 16px; /* evita zoom iOS */
+    padding: 14px 10px;
+  }
+
+  /* Lista de itens do carrinho */
+  .pdv-items-list {
+    flex: 1;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    font-size: 13px;
+  }
+
+  /* Total e cliente */
+  .pdv-main-bottom-section {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .total-display {
+    font-size: 22px !important;
+  }
+
+  .total-display span {
+    font-size: 28px !important;
+  }
+
+  /* Atalhos de teclado (F5/F8): esconder em mobile — não fazem sentido */
+  .pdv-keyboard-hint {
+    display: none;
+  }
+}
+
+/* -------------------------------------------------------
+   MÓDULO DE COMPRAS (XML)
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  #purchaseImportContainer {
+    padding: 12px !important;
+  }
+
+  .import-actions {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .import-actions button {
+    width: 100%;
+    padding: 14px;
+  }
+
+  /* Tabela de importação: colunas demais — forçar scroll */
+  #purchaseItemsTable {
+    min-width: 700px;
+  }
+}
+
+/* -------------------------------------------------------
+   MÓDULO FINANCEIRO
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .finance-tab-pane .product-form {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* -------------------------------------------------------
+   MODAIS — quase tela cheia em mobile
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .modal {
+    align-items: flex-end !important; /* modal sobe do rodapé */
+    padding: 0 !important;
+  }
+
+  .modal-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 88vh;
+    overflow-y: auto;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 20px 16px 32px !important;
+    margin: 0 !important;
+  }
+
+  /* Mantém modais de notificação/confirmação centralizados */
+  #notificationModal,
+  #confirmationModal {
+    align-items: center !important;
+    padding: 16px !important;
+  }
+
+  #notificationModal .modal-content,
+  #confirmationModal .modal-content {
+    border-radius: 12px !important;
+    max-height: 70vh;
+    width: calc(100% - 32px) !important;
+  }
+
+  .modal-buttons {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .modal-buttons button {
+    width: 100%;
+    padding: 14px;
+  }
+
+  /* Lista de produtos no modal do PDV */
+  .modal-product-list {
+    max-height: 55vh;
+  }
+
+  .modal-search-input {
+    font-size: 16px; /* evita zoom iOS */
+    padding: 12px;
+  }
+}
+
+/* -------------------------------------------------------
+   CHATBOT
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  #chatbot-window {
+    position: fixed !important;
+    bottom: 0 !important;
+    right: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 16px 16px 0 0 !important;
+    height: 70vh !important;
+    z-index: 300;
+  }
+}
+
+/* -------------------------------------------------------
+   ETIQUETAS
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .labels-layout {
+    flex-direction: column !important;
+  }
+
+  .labels-controls-panel,
+  .labels-preview-container {
+    width: 100% !important;
+  }
+
+  .print-preview-area {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* -------------------------------------------------------
+   SEÇÃO HOME / DASHBOARD
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .dashboard-cards,
+  .stats-grid,
+  .content-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+/* -------------------------------------------------------
+   FORMULÁRIO DE PERFIL
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .modal-form .form-group {
+    margin-bottom: 14px;
+  }
+
+  .modal-form input {
+    font-size: 16px;
+    padding: 12px;
+  }
+}
+
+/* -------------------------------------------------------
+   LOGO DA SIDEBAR EM MOBILE
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  .sidebar-logo-container {
+    padding: 16px 20px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo-banner-image {
+    max-height: 36px;
+    width: auto;
+  }
+
+  .logo-icon-image {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* -------------------------------------------------------
+   BOTÃO DE FECHAR SIDEBAR EM MOBILE (X no topo)
+------------------------------------------------------- */
+@media (max-width: 900px) {
+
+  #mobile-close-sidebar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255,255,255,0.12);
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    z-index: 10;
+  }
+}
+
+/* Esconder o botão de fechar em desktop */
+#mobile-close-sidebar {
+  display: none;
+}
+
+/* -------------------------------------------------------
+   TELA MUITO PEQUENA (≤ 480px)
+------------------------------------------------------- */
+@media (max-width: 480px) {
+
+  .content-area {
+    padding: 12px !important;
+  }
+
+  .section h1 {
+    font-size: 18px;
+  }
+
+  /* Dashboard: 1 coluna em vez de 2 */
+  .dashboard-cards,
+  .stats-grid,
+  .content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Etiquetas: 1 por linha */
+  .print-preview-area {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* PDV: total bem grande */
+  .total-display span {
+    font-size: 32px !important;
+  }
+
+  /* Abas com fonte menor */
+  .product-tab-btn,
+  .finance-tab-btn {
+    font-size: 12px !important;
+    padding: 7px 11px !important;
+  }
+}
+
+/* -------------------------------------------------------
+   UTILITÁRIO: esconder texto de atalho em mobile
+------------------------------------------------------- */
+@media (max-width: 900px) {
+  .desktop-only {
+    display: none !important;
+  }
+}

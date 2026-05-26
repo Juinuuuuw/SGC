@@ -1,0 +1,589 @@
+/* ============================================================
+   mesas.css — PDV Restaurante: Grid de Mesas e Tela de Pedido
+   ============================================================ */
+
+/* ── HEADER DO PDV (modo switcher) ───────────────────────── */
+.pdv-mode-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.pdv-mode-bar h2 {
+  flex: 1;
+  font-size: 17px;
+  margin: 0;
+}
+
+.pdv-mode-btn {
+  padding: 8px 18px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  background: #f0f0f0;
+  color: #555;
+  transition: all 0.2s;
+}
+
+.pdv-mode-btn.active {
+  background: #4a148c;
+  color: #fff;
+  border-color: #4a148c;
+}
+
+.pdv-mode-btn:not(.active):hover {
+  background: #ede7f6;
+  color: #4a148c;
+  border-color: #ede7f6;
+}
+
+/* ── SEÇÃO MESAS (visibilidade condicional) ──────────────── */
+#pdv-restaurante-view,
+#pdv-varejo-view {
+  display: none;
+}
+
+#pdv-restaurante-view.active,
+#pdv-varejo-view.active {
+  display: block;
+}
+
+/* ── TOOLBAR DAS MESAS ───────────────────────────────────── */
+.mesas-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mesas-toolbar h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.mesas-legend {
+  display: flex;
+  gap: 14px;
+  font-size: 13px;
+  color: #666;
+  align-items: center;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 5px;
+}
+
+.legend-dot.livre    { background: #2e7d32; }
+.legend-dot.ocupada  { background: #b71c1c; }
+.legend-dot.conta    { background: #f57f17; }
+
+/* ── GRID DE MESAS ───────────────────────────────────────── */
+.mesas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 16px;
+}
+
+.mesa-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 18px 16px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  user-select: none;
+}
+
+.mesa-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+}
+
+/* Status cores */
+.mesa-card.livre   { border-left: 5px solid #2e7d32; }
+.mesa-card.ocupada { border-left: 5px solid #b71c1c; background: #fff5f5; }
+.mesa-card.conta   { border-left: 5px solid #f57f17; background: #fffbf0; }
+
+.mesa-card.livre:hover   { border-color: #2e7d32; }
+.mesa-card.ocupada:hover { border-color: #b71c1c; }
+.mesa-card.conta:hover   { border-color: #f57f17; }
+
+/* Número grande */
+.mesa-numero {
+  font-size: 28px;
+  font-weight: 900;
+  color: #1a1a2e;
+  line-height: 1;
+}
+
+/* Nome da mesa */
+.mesa-nome {
+  font-size: 13px;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Badge de status */
+.mesa-status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.mesa-card.livre   .mesa-status-badge { background: #e8f5e9; color: #2e7d32; }
+.mesa-card.ocupada .mesa-status-badge { background: #ffebee; color: #b71c1c; }
+.mesa-card.conta   .mesa-status-badge { background: #fff3e0; color: #e65100; }
+
+/* Info de tempo e valor */
+.mesa-info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.mesa-tempo {
+  font-size: 12px;
+  color: #999;
+}
+
+.mesa-total {
+  font-size: 15px;
+  font-weight: 800;
+  color: #4a148c;
+}
+
+.mesa-capacidade {
+  font-size: 12px;
+  color: #bbb;
+}
+
+/* Indicador pulsante quando conta solicitada */
+.mesa-card.conta::after {
+  content: '⚠';
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 18px;
+  animation: pulse-warn 1.2s infinite;
+}
+
+@keyframes pulse-warn {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── TELA DE PEDIDO DA MESA ──────────────────────────────── */
+#mesa-pedido-view {
+  display: none;
+  flex-direction: column;
+  height: 100%;
+}
+
+#mesa-pedido-view.active {
+  display: flex;
+}
+
+.pedido-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: #4a148c;
+  color: #fff;
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.pedido-header-back {
+  background: rgba(255,255,255,0.15);
+  border: none;
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  transition: background 0.2s;
+}
+
+.pedido-header-back:hover { background: rgba(255,255,255,0.25); }
+
+.pedido-header-info { flex: 1 }
+
+.pedido-header-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin: 0;
+}
+
+.pedido-header-sub {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 2px;
+}
+
+.pedido-header-total {
+  text-align: right;
+}
+
+.pedido-header-total span {
+  display: block;
+  font-size: 11px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pedido-header-total strong {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffb700;
+}
+
+/* Input de busca de produto */
+.pedido-busca-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+.pedido-busca-row input[type="text"],
+.pedido-busca-row input[type="number"] {
+  padding: 12px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 8px;
+  font-size: 15px;
+}
+
+.pedido-busca-row input[type="text"] { flex: 1; }
+.pedido-busca-row input[type="number"] { width: 80px; text-align: center; }
+
+.pedido-busca-row button {
+  padding: 12px 20px;
+  background: #4a148c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+
+.pedido-busca-row button:hover { background: #7b1fa2; }
+
+/* Autocomplete */
+.pedido-autocomplete {
+  position: relative;
+}
+
+.pedido-autocomplete-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  z-index: 50;
+  max-height: 220px;
+  overflow-y: auto;
+  display: none;
+}
+
+.pedido-autocomplete-list.visible { display: block; }
+
+.autocomplete-item {
+  padding: 11px 14px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  transition: background 0.1s;
+}
+
+.autocomplete-item:hover { background: #f5f0ff; }
+
+.autocomplete-item .nome { font-weight: 600; color: #1a1a2e; }
+.autocomplete-item .ref  { font-size: 12px; color: #aaa; }
+.autocomplete-item .preco { font-weight: 700; color: #4a148c; }
+
+/* Tabela de itens do pedido */
+.pedido-itens {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  margin-bottom: 12px;
+}
+
+.pedido-itens table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.pedido-itens thead th {
+  padding: 10px 14px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.pedido-itens tbody td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #f5f5f5;
+  vertical-align: middle;
+}
+
+.pedido-itens tbody tr:hover { background: #fdf8ff; }
+
+.pedido-itens .item-nome { font-weight: 600; }
+
+.pedido-itens .btn-remover-item {
+  background: none;
+  border: none;
+  color: #e53935;
+  cursor: pointer;
+  font-size: 18px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: background 0.15s;
+}
+
+.pedido-itens .btn-remover-item:hover { background: #ffebee; }
+
+.pedido-vazio {
+  text-align: center;
+  padding: 40px;
+  color: #bbb;
+  font-size: 15px;
+}
+
+/* Rodapé do pedido */
+.pedido-footer {
+  background: #fff;
+  border-radius: 10px;
+  padding: 14px 16px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+}
+
+.pedido-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.pedido-total-label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.pedido-total-valor {
+  font-size: 26px;
+  font-weight: 900;
+  color: #4a148c;
+}
+
+.pedido-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.pedido-actions button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-pedir-conta {
+  background: #fff3e0;
+  color: #e65100;
+  border: 2px solid #ffb300 !important;
+}
+
+.btn-pedir-conta:hover { background: #ffe0b2; }
+
+.btn-fechar-conta {
+  background: #ffb700;
+  color: #1a1a2e;
+}
+
+.btn-fechar-conta:hover { background: #e0a800; }
+
+/* ── MODAL DE FECHAMENTO DE CONTA ────────────────────────── */
+.fechar-conta-modal .modal-content {
+  max-width: 420px;
+}
+
+.fechar-conta-summary {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.fechar-conta-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 4px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.fechar-conta-summary-row:last-child { border: none; }
+
+.fechar-conta-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: 800;
+  color: #4a148c;
+  margin: 10px 0 16px;
+}
+
+.forma-pagamento-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.forma-btn {
+  padding: 10px 6px;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+  color: #444;
+}
+
+.forma-btn:hover   { border-color: #4a148c; color: #4a148c; }
+.forma-btn.selected {
+  border-color: #4a148c;
+  background: #4a148c;
+  color: #fff;
+}
+
+.desconto-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.desconto-row label { font-size: 14px; font-weight: 600; color: #555; white-space: nowrap; }
+.desconto-row input {
+  flex: 1;
+  padding: 9px 12px;
+  border: 1.5px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* ── GESTÃO DE MESAS (config) ────────────────────────────── */
+.mesa-config-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.mesa-config-card {
+  background: #fff;
+  border: 1px solid var(--cor-borda-cinza);
+  border-radius: 10px;
+  padding: 14px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.mesa-config-card .mc-numero {
+  font-size: 22px;
+  font-weight: 800;
+  color: #1a1a2e;
+}
+
+.mesa-config-card .mc-nome  { font-size: 12px; color: #888; margin: 2px 0 8px; }
+.mesa-config-card .mc-cap   { font-size: 12px; color: #aaa; }
+
+.mesa-config-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+.mesa-config-actions button {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+/* ── RESPONSIVIDADE ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  .mesas-grid { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .pedido-busca-row { flex-wrap: wrap; }
+  .pedido-busca-row input[type="text"] { min-width: 0; }
+  .forma-pagamento-grid { grid-template-columns: repeat(2, 1fr); }
+  .pedido-header { flex-wrap: wrap; }
+}
+
+@media (max-width: 480px) {
+  .mesas-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .mesa-card { padding: 14px 12px; }
+  .mesa-numero { font-size: 22px; }
+  .pdv-mode-bar { flex-wrap: wrap; }
+  .pedido-actions { flex-direction: column; }
+}
